@@ -6,15 +6,17 @@ rand = random.randint
 ID = 90000074
 
 def main(pc):
-	result = script.select(pc, (
+	selects = (
 		"warehouse",
 		"warp",
-		"help",
+		"vecohelp",
 		"printallequip",
 		"unsetallequip",
 		"switchspeed",
+		"find_item",
 		"cancel",
-	), "select")
+	)
+	result = script.select(pc, selects , "select")
 	if result == 1:
 		script.warehouse(pc, 0)
 	elif result == 2:
@@ -30,3 +32,5 @@ def main(pc):
 			script.speed(pc, 820)
 		else:
 			script.speed(pc, 410)
+	elif result == 7:
+		pc.map_send("18e4", 1)

@@ -21,3 +21,6 @@ def main(pc):
 		script.npcshop_list(pc, shop_item_list[:13])
 	elif r == 2:
 		script.npcshop_list(pc, shop_item_list[13:])
+	while True:
+		if pc.shop_open is None:
+			return
