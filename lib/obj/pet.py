@@ -12,7 +12,8 @@ class Pet:
 	def __init__ (self, d):
 		d.update(self.__dict__)
 		self.__dict__ = d
-		self.hp = self.maxhp
+		self.hp = 9999
+		self.maxhp = 9999
 		self.map_id = 0
 		self.map_obj = None
 	
@@ -31,13 +32,15 @@ class Pet:
 		self.rawx = 0
 		self.rawy = 0
 		self.rawdir = 0
-		self.speed = 310 #410
+		self.speed = 410
 		self.motion_id = 111
 		self.motion_loop = False
 		self.standby = False
 		self.lv_base = 1
 		#packet.make_020d
 		self.race = -1
+		self.race_motion = 0
+		self.metamor = None
 		self.form = -1
 		self.gender = -1
 		self.hair = -1
@@ -93,7 +96,26 @@ class Pet:
 		self.master.map_send_map(
 			"121c", self.master, self.id, self.motion_id, self.motion_loop
 		) #モーション通知
-	
+
+	def set_motion_together_with_partners(self, set_loc, mo_dir, motion_id, motion_loop=True):
+		with self.lock:
+			self.motion_id = motion_id
+			self.motion_loop = True if motion_loop else False
+			if self.master.item.get(self.master.equip.pet).check_type(general.PET_TYPE_LIST):
+					if set_loc == 0:
+						self.set_coord(self.master.x, self.master.y + 1.0)
+					elif set_loc == 2:
+						self.set_coord(self.master.x - 1.0, self.master.y)
+					elif set_loc == 4:
+						self.set_coord(self.master.x, self.master.y - 1.0)
+					elif set_loc == 6:
+						self.set_coord(self.master.x + 1.0, self.master.y)
+					self.set_dir(mo_dir)
+					self.master.map_send_map("11f9", self, 13)
+					self.master.map_send_map(
+						"121c", self.master, self.id, self.motion_id, self.motion_loop
+					) #モーション通知
+
 	def set_coord_from_master(self):
 		#instead by _run_near_master, only use in pets.set_pet
 		with self.lock and self.master.lock:
@@ -135,7 +157,7 @@ class Pet:
 			self.y = self.map_obj.centery - rawy/100.0 #no int()
 			if self.x < 0: self.x += 256
 			if self.y < 0: self.y += 256
-	
+
 	def set_dir(self, d):
 		with self.lock:
 			self.dir = d

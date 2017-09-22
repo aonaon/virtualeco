@@ -43,6 +43,7 @@ def save(self):
 	data.set("main", "name", str(self.name))
 	data.set("main", "gmlevel", str(self.gmlevel))
 	data.set("main", "race", str(self.race))
+	data.set("main", "race_motion", str(self.race_motion))
 	data.set("main", "form", str(self.form))
 	data.set("main", "gender", str(self.gender))
 	data.set("main", "hair", str(self.hair))
@@ -95,7 +96,14 @@ def save(self):
 	data.add_section("warehouse")
 	for key, value in self.warehouse.iteritems():
 		data.set("warehouse", str(key), item_dumps(value))
-	#"name = value"
+	data.add_section("mirror")
+	data.set("mirror", "face", general.list_to_str(self.mirror_face))
+	data.set("mirror", "hair", general.list_to_str(self.mirror_hair))
+	data.set("mirror", "wig", general.list_to_str(self.mirror_wig))
+	data.set("mirror", "haircolor", general.list_to_str(self.mirror_haircolor))
+	# "name = value"
+	for key, value in self.item.iteritems():
+		data.set("item", str(key), item_dumps(value))
 	data.add_section("var")
 	for key, value in self.var.iteritems():
 		try:
@@ -124,6 +132,7 @@ def load_1_0_0(self, data):
 	self.name = data.get("main","name")
 	self.gmlevel = data.getint("main","gmlevel")
 	self.race = data.getint("main","race")
+	self.race_motion = 0
 	self.form = data.getint("main","form")
 	self.gender = data.getint("main","gender")
 	self.hair = data.getint("main","hair")
@@ -192,6 +201,10 @@ def load_1_0_0(self, data):
 			except ConfigParser.NoOptionError:
 				general.log_error(
 					"[ pc  ] warning: dem equip [%s] not exist in [%s]"%(attr, self))
+	self.mirror_face = [self.face]+[-1]*7
+	self.mirror_hair = [self.hair]+[-1]*7
+	self.mirror_wig = [self.wig]+[-1]*7
+	self.mirror_haircolor = [self.haircolor]+[-1]*7
 	#{name: value, ...}
 	self.var = {}
 	if data.has_section("dic"):
@@ -216,6 +229,7 @@ def load_1_1_0(self, data):
 	self.name = data.get("main","name")
 	self.gmlevel = data.getint("main","gmlevel")
 	self.race = data.getint("main","race")
+	self.race_motion = 0
 	self.form = data.getint("main","form")
 	self.gender = data.getint("main","gender")
 	self.hair = data.getint("main","hair")
@@ -277,6 +291,184 @@ def load_1_1_0(self, data):
 			except ConfigParser.NoOptionError:
 				general.log_error(
 					"[ pc  ] warning: dem equip [%s] not exist in [%s]"%(attr, self))
+	self.mirror_face = [self.face]+[-1]*7
+	self.mirror_hair = [self.hair]+[-1]*7
+	self.mirror_wig = [self.wig]+[-1]*7
+	self.mirror_haircolor = [self.haircolor]+[-1]*7
+	#{name: value, ...}
+	self.var = {}
+	if data.has_section("var"):
+		for key in data.options("var"):
+			try:
+				self.var[key] = dumpobj.loads(data.get("var", key))
+			except:
+				general.log_error("[ pc  ] load var error", self, key)
+				general.log_error(traceback.format_exc())
+	#[skill_id, ...]
+	self.skill_list = general.str_to_list(data.get("skill", "list"))
+	if self.dem_form_status():
+		self.equip = self.equip_dem
+	else:
+		self.equip = self.equip_std
+
+def load_1_1_2(self, data):
+	self.id = data.getint("main","id")
+	self.name = data.get("main","name")
+	self.gmlevel = data.getint("main","gmlevel")
+	self.race = data.getint("main","race")
+	self.race_motion = data.getint("main","race_motion")
+	self.form = data.getint("main","form")
+	self.gender = data.getint("main","gender")
+	self.hair = data.getint("main","hair")
+	self.haircolor =data.getint("main","haircolor")
+	self.wig = data.getint("main","wig")
+	self.face = data.getint("main","face")
+	self.base_lv = data.getint("main","base_lv")
+	self.ex = data.getint("main","ex")
+	self.wing = data.getint("main","wing")
+	self.wingcolor = data.getint("main","wingcolor")
+	self.job = data.getint("main","job")
+	self.map_id = data.getint("main","map_id")
+	self.lv_base = data.getint("main","lv_base")
+	self.lv_job1 = data.getint("main","lv_job1")
+	self.lv_job2x = data.getint("main","lv_job2x")
+	self.lv_job2t = data.getint("main","lv_job2t")
+	self.lv_job3 = data.getint("main","lv_job3")
+	self.gold = data.getint("main","gold")
+	self.x = data.getfloat("main","x")
+	self.y = data.getfloat("main","y")
+	self.dir = data.getint("main","dir")
+	self.str = data.getint("status","str")
+	self.dex = data.getint("status","dex")
+	self.int = data.getint("status","int")
+	self.vit = data.getint("status","vit")
+	self.agi = data.getint("status","agi")
+	self.mag = data.getint("status","mag")
+	self.stradd = data.getint("status","stradd")
+	self.dexadd = data.getint("status","dexadd")
+	self.intadd = data.getint("status","intadd")
+	self.vitadd = data.getint("status","vitadd")
+	self.agiadd = data.getint("status","agiadd")
+	self.magadd = data.getint("status","magadd")
+	#{item_iid: item_object, ...}
+	self.item = {}
+	self.sort.item = general.str_to_list(data.get("sort", "item"))
+	for i in self.sort.item:
+		if i <= 0:
+			general.log_error("[ pc  ] item iid <= 0", self)
+		self.item[i] = item_loads(data.get("item", str(i)))
+	#{item_iid: item_object, ...}
+	self.warehouse = {}
+	self.sort.warehouse = general.str_to_list(data.get("sort", "warehouse"))
+	for i in self.sort.warehouse:
+		if i <= 0:
+			general.log_error("[ pc  ] warehouse iid <= 0", self)
+		self.warehouse[i] = item_loads(data.get("warehouse", str(i)))
+	#equip.place = iid
+	for attr in general.EQUIP_ATTR_LIST:
+		try:
+			setattr(self.equip_std, attr, data.getint("equip", attr))
+		except ConfigParser.NoOptionError:
+			general.log_error(
+				"[ pc  ] warning: equip [%s] not exist in [%s]"%(attr, self))
+	if data.has_section("equip_dem"):
+		for attr in general.EQUIP_ATTR_LIST:
+			try:
+				setattr(self.equip_dem, attr, data.getint("equip_dem", attr))
+			except ConfigParser.NoOptionError:
+				general.log_error(
+					"[ pc  ] warning: dem equip [%s] not exist in [%s]"%(attr, self))
+	self.mirror_face = general.str_to_list(data.get("mirror", "face"))
+	self.mirror_hair = general.str_to_list(data.get("mirror", "hair"))
+	self.mirror_wig = general.str_to_list(data.get("mirror", "wig"))
+	self.mirror_haircolor = general.str_to_list(data.get("mirror", "haircolor"))
+	#{name: value, ...}
+	self.var = {}
+	if data.has_section("var"):
+		for key in data.options("var"):
+			try:
+				self.var[key] = dumpobj.loads(data.get("var", key))
+			except:
+				general.log_error("[ pc  ] load var error", self, key)
+				general.log_error(traceback.format_exc())
+	#[skill_id, ...]
+	self.skill_list = general.str_to_list(data.get("skill", "list"))
+	if self.dem_form_status():
+		self.equip = self.equip_dem
+	else:
+		self.equip = self.equip_std
+
+def load_1_1_3(self, data):
+	self.id = data.getint("main","id")
+	self.name = data.get("main","name")
+	self.gmlevel = data.getint("main","gmlevel")
+	self.race = data.getint("main","race")
+	self.race_motion = data.getint("main","race_motion")
+	self.form = data.getint("main","form")
+	self.gender = data.getint("main","gender")
+	self.hair = data.getint("main","hair")
+	self.haircolor =data.getint("main","haircolor")
+	self.wig = data.getint("main","wig")
+	self.face = data.getint("main","face")
+	self.base_lv = data.getint("main","base_lv")
+	self.ex = data.getint("main","ex")
+	self.wing = data.getint("main","wing")
+	self.wingcolor = data.getint("main","wingcolor")
+	self.job = data.getint("main","job")
+	self.map_id = data.getint("main","map_id")
+	self.lv_base = data.getint("main","lv_base")
+	self.lv_job1 = data.getint("main","lv_job1")
+	self.lv_job2x = data.getint("main","lv_job2x")
+	self.lv_job2t = data.getint("main","lv_job2t")
+	self.lv_job3 = data.getint("main","lv_job3")
+	self.gold = data.getint("main","gold")
+	self.x = data.getfloat("main","x")
+	self.y = data.getfloat("main","y")
+	self.dir = data.getint("main","dir")
+	self.str = data.getint("status","str")
+	self.dex = data.getint("status","dex")
+	self.int = data.getint("status","int")
+	self.vit = data.getint("status","vit")
+	self.agi = data.getint("status","agi")
+	self.mag = data.getint("status","mag")
+	self.stradd = data.getint("status","stradd")
+	self.dexadd = data.getint("status","dexadd")
+	self.intadd = data.getint("status","intadd")
+	self.vitadd = data.getint("status","vitadd")
+	self.agiadd = data.getint("status","agiadd")
+	self.magadd = data.getint("status","magadd")
+	#{item_iid: item_object, ...}
+	self.item = {}
+	self.sort.item = general.str_to_list(data.get("sort", "item"))
+	for i in self.sort.item:
+		if i <= 0:
+			general.log_error("[ pc  ] item iid <= 0", self)
+		self.item[i] = item_loads(data.get("item", str(i)))
+	#{item_iid: item_object, ...}
+	self.warehouse = {}
+	self.sort.warehouse = general.str_to_list(data.get("sort", "warehouse"))
+	for i in self.sort.warehouse:
+		if i <= 0:
+			general.log_error("[ pc  ] warehouse iid <= 0", self)
+		self.warehouse[i] = item_loads(data.get("warehouse", str(i)))
+	#equip.place = iid
+	for attr in general.EQUIP_ATTR_LIST:
+		try:
+			setattr(self.equip_std, attr, data.getint("equip", attr))
+		except ConfigParser.NoOptionError:
+			general.log_error(
+				"[ pc  ] warning: equip [%s] not exist in [%s]"%(attr, self))
+	if data.has_section("equip_dem"):
+		for attr in general.EQUIP_ATTR_LIST:
+			try:
+				setattr(self.equip_dem, attr, data.getint("equip_dem", attr))
+			except ConfigParser.NoOptionError:
+				general.log_error(
+					"[ pc  ] warning: dem equip [%s] not exist in [%s]"%(attr, self))
+	self.mirror_face = general.str_to_list(data.get("mirror", "face"))
+	self.mirror_hair = general.str_to_list(data.get("mirror", "hair"))
+	self.mirror_wig = general.str_to_list(data.get("mirror", "wig"))
+	self.mirror_haircolor = general.str_to_list(data.get("mirror", "haircolor"))
 	#{name: value, ...}
 	self.var = {}
 	if data.has_section("var"):
@@ -296,4 +488,6 @@ def load_1_1_0(self, data):
 name_map = {
 	"1.0.0": load_1_0_0,
 	"1.1.0": load_1_1_0, #2012-09-21
+	"1.1.2": load_1_1_2, #2015-01-08
+	"1.1.3": load_1_1_3, #2015-01-08
 }

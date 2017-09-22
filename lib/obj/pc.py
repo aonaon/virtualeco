@@ -63,12 +63,10 @@ class PC:
 	def update_item_status(self):
 		self.update_status()
 		self.map_send("0230", self) #現在CAPA/PAYL
-		self.map_send("0231", self) #最大CAPA/PAYL
 	
 	def update_equip_status(self):
 		self.update_status()
 		self.map_send("0230", self) #現在CAPA/PAYL
-		self.map_send("0231", self) #最大CAPA/PAYL
 		self.map_send_map("0221", self) #最大HP/MP/SP
 		self.map_send_map("021c", self) #現在のHP/MP/SP/EP
 		self.map_send("157c", self) #キャラの状態
@@ -211,21 +209,48 @@ class PC:
 		if not item:
 			general.log_error("[ pc  ] set_equip iid %d not exist"%iid, self)
 			return False
+		if self.metamor is not None and item.check_type(general.RIDE_TYPE_LIST):
+			self.map_send("09e8", -1, -1, -2, 1)
+			return False
 		unset_iid_list = []
 		set_part = 0
 		if item.check_type(general.HEAD_TYPE_LIST): #頭
+			item_face = self.item.get(self.equip.face)
+			if item_face and item_face.check_type(("FULLFACE",)):
+				unset_iid_list.append(self.equip.face)
+				self.equip.face = 0
+			item_tops =self.item.get(self.equip.tops)
+			if item_tops and item_tops.check_type(("COSTUME",)):
+				unset_iid_list.append(self.equip.tops)
+				self.equip.tops = 0
 			unset_iid_list.append(self.equip.head)
 			self.equip.head = iid
 			set_part = 6
 		elif item.check_type(general.ACCESORY_HEAD_TYPE_LIST): #頭
+			item_tops =self.item.get(self.equip.tops)
+			if item_tops and item_tops.check_type(("COSTUME",)):
+				unset_iid_list.append(self.equip.tops)
+				self.equip.tops = 0
 			unset_iid_list.append(self.equip.head)
 			self.equip.head = iid
 			set_part = 7
 		elif item.check_type(general.FULLFACE_TYPE_LIST): #顔
+			item_head = self.item.get(self.equip.head)
+			if item_head and item_head.check_type(("ACCESORY_HEAD","HELM",)):
+				unset_iid_list.append(self.equip.head)
+				self.equip.head = 0
+			item_tops =self.item.get(self.equip.tops)
+			if item_tops and item_tops.check_type(("COSTUME","FACEBODYSUIT")):
+				unset_iid_list.append(self.equip.tops)
+				self.equip.tops = 0
 			unset_iid_list.append(self.equip.face)
 			self.equip.face = iid
 			set_part = 6 #8 before ver315
 		elif item.check_type(general.ACCESORY_FACE_TYPE_LIST): #顔
+			item_tops =self.item.get(self.equip.tops)
+			if item_tops and item_tops.check_type(("COSTUME","FACEBODYSUIT")):
+				unset_iid_list.append(self.equip.tops)
+				self.equip.tops = 0
 			unset_iid_list.append(self.equip.face)
 			self.equip.face = iid
 			set_part = 8 #9 before ver315
@@ -233,21 +258,57 @@ class PC:
 			unset_iid_list.append(self.equip.chestacce)
 			self.equip.chestacce = iid
 			set_part = 10
-		elif item.check_type(general.ONEPIECE_TYPE_LIST): #...
-			unset_iid_list.append(self.equip.tops)
-			unset_iid_list.append(self.equip.bottoms)
-			self.equip.tops = iid
-			self.equip.bottoms = 0
-			set_part = 11
 		elif item.check_type(general.UPPER_TYPE_LIST): #上半身
+			item_right = self.item.get(self.equip.right)
+			item_shoes = self.item.get(self.equip.shoes)
+			if item_right and item_right.check_type(("WEDDING",)):
+				unset_iid_list.append(self.equip.right)
+				self.equip.right = 0
+			if item.check_type(("COSTUME",)):
+				unset_iid_list.append(self.equip.face)
+				self.equip.face = 0
+				unset_iid_list.append(self.equip.head)
+				self.equip.head = 0
+			if item.check_type(("COSTUME","BODYSUIT","FACEBODYSUIT",)):
+				unset_iid_list.append(self.equip.shoes)
+				self.equip.shoes = 0
+				unset_iid_list.append(self.equip.socks)
+				self.equip.socks = 0
+				if item.check_type(("FACEBODYSUIT",)):
+					item_face = self.item.get(self.equip.face)
+					if item_face and item_face.check_type(("FULLFACE","ACCESORY_FACE",)):
+						unset_iid_list.append(self.equip.face)
+						self.equip.face = 0
+			if item.check_type(("OVERALLS",)):
+				if item_shoes and item_shoes.check_type(("LONGBOOTS","HALFBOOTS","BOOTS",)):
+					unset_iid_list.append(self.equip.shoes)
+					self.equip.shoes = 0
+			if item.check_type(("ONEPIECE")):
+				if item_shoes and item_shoes.check_type(("LONGBOOTS",)):
+					unset_iid_list.append(self.equip.shoes)
+					self.equip.shoes = 0
+			if not item.check_type(("ARMOR_UPPER", "PARTS_BODY",)):
+				unset_iid_list.append(self.equip.bottoms)
+				self.equip.bottoms = 0
+				if item_right and item_right.check_type(("EXSWORD",)):
+					unset_iid_list.append(self.equip.right)
+					self.equip.right = 0
 			unset_iid_list.append(self.equip.tops)
 			self.equip.tops = iid
 			set_part = 11
 		elif item.check_type(general.LOWER_TYPE_LIST): #下半身
+			item_right = self.item.get(self.equip.right)
 			item_tops = self.item.get(self.equip.tops)
-			if item_tops and item_tops.check_type(general.ONEPIECE_TYPE_LIST):
+			item_shoes = self.item.get(self.equip.shoes)
+			if item_right and item_right.check_type(("WEDDING","EXSWORD",)):
+				unset_iid_list.append(self.equip.right)
+				self.equip.right = 0
+			if item_tops and item_tops.check_type(("COSTUME","ONEPIECE","BODYSUIT","OVERALLS","FACEBODYSUIT",)):
 				unset_iid_list.append(self.equip.tops)
 				self.equip.tops = 0
+			if item_shoes and item_shoes.check_type(("LONGBOOTS","HALFBOOTS",)):
+				unset_iid_list.append(self.equip.shoes)
+				self.equip.shoes = 0
 			unset_iid_list.append(self.equip.bottoms)
 			self.equip.bottoms = iid
 			set_part = 12
@@ -256,22 +317,89 @@ class PC:
 			self.equip.backpack = iid
 			set_part = 13
 		elif item.check_type(general.RIGHT_TYPE_LIST): #右手装備
+			if item.check_type(("WEDDING",)):
+				unset_iid_list.append(self.equip.left)
+				unset_iid_list.append(self.equip.tops)
+				unset_iid_list.append(self.equip.bottoms)
+				unset_iid_list.append(self.equip.pet)
+				self.equip.left = 0
+				self.equip.tops = 0
+				self.equip.bottoms = 0
+				self.equip.pet = 0
+				self.unset_pet()
+				item_shoes = self.item.get(self.equip.shoes)
+				item_pet = self.item.get(self.equip.pet)
+				if item_shoes and item_shoes.check_type(("LONGBOOTS","HALFBOOTS",)):
+					unset_iid_list.append(self.equip.shoes)
+					self.equip.shoes = 0
+			if item.check_type(("EXSWORD",)):
+				unset_iid_list.append(self.equip.bottoms)
+				unset_iid_list.append(self.equip.shoes)
+				self.equip.bottoms = 0
+				self.equip.shoes = 0
+				item_tops = self.item.get(self.equip.tops)
+				if item_tops and item_tops.check_type(("COSTUME","ONEPIECE","BODYSUIT","OVERALLS","FACEBODYSUIT",)):
+					unset_iid_list.append(self.equip.tops)
+					self.equip.tops = 0
 			unset_iid_list.append(self.equip.right)
 			self.equip.right = iid
 			set_part = 14
 		elif item.check_type(general.LEFT_TYPE_LIST): #左手装備
+			item_right = self.item.get(self.equip.right)
+			if item_right and item_right.check_type(("WEDDING",)):
+				unset_iid_list.append(self.equip.right)
+				self.equip.right = 0
 			unset_iid_list.append(self.equip.left)
 			self.equip.left = iid
 			set_part = 15
 		elif item.check_type(general.BOOTS_TYPE_LIST): #靴
+			item_right = self.item.get(self.equip.right)
+			item_tops = self.item.get(self.equip.tops)
+			if item_right and item_right.check_type(("EXSWORD",)):
+				unset_iid_list.append(self.equip.right)
+				self.equip.right = 0
+			if item.check_type("LONGBOOTS",):
+				unset_iid_list.append(self.equip.bottoms)
+				self.equip.bottoms = 0
+				if item_tops and item_tops.check_type(("COSTUME","ONEPIECE","BODYSUIT","OVERALLS","FACEBODYSUIT",)):
+					unset_iid_list.append(self.equip.tops)
+					self.equip.tops = 0
+				if item_right and item_right.check_type(("WEDDING",)):
+					unset_iid_list.append(self.equip.right)
+					self.equip.right = 0
+			if item.check_type("HALFBOOTS",):
+				unset_iid_list.append(self.equip.bottoms)
+				self.equip.bottoms = 0
+				if item_tops and item_tops.check_type(("COSTUME","OVERALLS","BODYSUIT","FACEBODYSUIT",)):
+					unset_iid_list.append(self.equip.tops)
+					self.equip.tops = 0
+				if item_right and item_right.check_type(("WEDDING",)):
+					unset_iid_list.append(self.equip.right)
+					self.equip.right = 0
+			if item.check_type("BOOTS",):
+				if item_tops and item_tops.check_type(("COSTUME","OVERALLS","BODYSUIT","FACEBODYSUIT",)):
+					unset_iid_list.append(self.equip.tops)
+					self.equip.tops = 0
+			if item.check_type(	"SHOES",):
+				if item_tops and item_tops.check_type(("COSTUME","BODYSUIT","FACEBODYSUIT",)):
+					unset_iid_list.append(self.equip.tops)
+					self.equip.tops = 0
 			unset_iid_list.append(self.equip.shoes)
 			self.equip.shoes = iid
 			set_part = 16
 		elif item.check_type(general.SOCKS_TYPE_LIST): #靴下
+			item_tops =self.item.get(self.equip.tops)
+			if item_tops and item_tops.check_type(("COSTUME","BODYSUIT","FACEBODYSUIT",)):
+				unset_iid_list.append(self.equip.tops)
+				self.equip.tops = 0
 			unset_iid_list.append(self.equip.socks)
 			self.equip.socks = iid
 			set_part = 17
-		elif item.check_type(general.PET_TYPE_LIST): #ペット
+		elif item.check_type(general.PET_TYPE_LIST) or item.check_type(general.RIDE_TYPE_LIST): #ペット
+			item_right = self.item.get(self.equip.right)
+			if item_right and item_right.check_type(("WEDDING",)):
+				unset_iid_list.append(self.equip.right)
+				self.equip.right = 0
 			unset_iid_list.append(self.equip.pet)
 			self.unset_pet()
 			self.equip.pet = iid
@@ -348,7 +476,7 @@ class PC:
 					item_list.append(self.item.get(i))
 		return filter(None, item_list)
 	
-	def item_append(self, item, place=0x02):
+	def item_append(self, item, showlog=True):
 		if len(self.item) >= env.MAX_ITEM_STOCK:
 			script.msg(self, "item_append error: stock limit")
 			return item
@@ -359,10 +487,11 @@ class PC:
 			self.sort.item.append(item_iid)
 			if self.online:
 				#アイテム取得
-				self.map_send("09d4", item, item_iid, place)
-				script.msg(self, "%sを%s個入手しました"%(item.name, item.count))
+				self.map_send("09d4", item, item_iid, 0x02)
+				if showlog:
+					script.msg(self, "%sを%s個入手しました"%(item.name, item.count))
 	
-	def item_pop(self, iid):
+	def item_pop(self, iid, showlog=True):
 		with self.lock:
 			try:
 				item = self.item.pop(iid)
@@ -373,9 +502,10 @@ class PC:
 			if self.online:
 				#インベントリからアイテム消去
 				self.map_send("09ce", iid)
-				script.msg(self, "%sを%s個失いました"%(item.name, item.count))
+				if showlog:
+					script.msg(self, "%sを%s個失いました"%(item.name, item.count))
 		return item
-	
+
 	def warehouse_append(self, item):
 		if len(self.warehouse) >= env.MAX_WAREHOURSE_STOCK:
 			script.msg(self, "warehouse_append error: stock limit")
@@ -386,7 +516,7 @@ class PC:
 			self.sort.warehouse.append(item_iid)
 			if self.online:
 				#倉庫インベントリーデータ
-				self.map_send("09f9", item, item_iid, 30)
+				self.map_send("09f8", item, item_iid, 30)
 				script.msg(self, "%sを%s個預りました"%(item.name, item.count))
 	
 	def warehouse_pop(self, iid):
@@ -628,17 +758,27 @@ class PC:
 			self.kanban = ""
 			self.map_obj = None
 			self.usermap_obj = None
-			self.warehouse_open = None #warehouse_id
+			self.warehouse_open_id = None #warehouse_id
+			self.warehouse_open = False
 			self.shop_open = None #shop_id or shop_item_list
 			self.select_result = None
+			self.input_string = None
+			self.metamor = None
+			self.bank = 0 #temporary
 			self.reset_trade()
 	
 	def set_pet(self):
 		return pets.set_pet(self)
-	
+
+	def set_ridepet(self):
+		return pets.set_ridepet(self)
+
+	def unset_ridepet(self, logout=False):
+		return pets.unset_ridepet(self, logout)
+
 	def unset_pet(self, logout=False):
 		return pets.unset_pet(self, logout)
-	
+
 	def unset_usermap(self, logout=False):
 		return usermaps.unset_usermap(self, logout)
 	
@@ -690,9 +830,9 @@ class PC:
 			status.lavoid = int(INT*5/3+AGI+LV/3+3)
 			status.aspd = int(AGI*3+((AGI+63)/9)**2+129)
 			status.cspd = int(DEX*3+((DEX+63)/9)**2+129)
-			status.maxhp = int(VIT*3+(VIT/5)**2+LV*2+(LV/5)**2+50)
-			status.maxmp = int(MAG*3+LV+(LV/9)**2+30)
-			status.maxsp = int(INT+VIT+LV+(LV/9)**2+20)
+			status.maxhp = long(VIT*3+(VIT/5)**2+LV*2+(LV/5)**2+50)
+			status.maxmp = long(MAG*3+LV+(LV/9)**2+30)
+			status.maxsp = long(INT+VIT+LV+(LV/9)**2+20)
 			status.maxpayl = STR*2.0/3.0+VIT/3.0+400
 			status.maxcapa = DEX/5.0+INT/10.0+200
 			status.hpheal = int(100+VIT/3)
@@ -710,9 +850,9 @@ class PC:
 			if not job:
 				general.log_error("[ pc  ] unknow job id:", self.job)
 				return
-			status.maxhp = int(status.maxhp*job.hp_rate)
-			status.maxmp = int(status.maxmp*job.mp_rate)
-			status.maxsp = int(status.maxsp*job.sp_rate)
+			status.maxhp = long(status.maxhp*job.hp_rate)
+			status.maxmp = long(status.maxmp*job.mp_rate)
+			status.maxsp = long(status.maxsp*job.sp_rate)
 			status.maxpayl = status.maxpayl*job.payl_rate
 			status.maxcapa = status.maxcapa*job.capa_rate
 		def get_equip_status(self):
@@ -737,9 +877,9 @@ class PC:
 				status.lavoid += int(item.l_avoid)
 				#status.aspd += int(item.aspd)
 				#status.cspd += int(item.cspd)
-				status.maxhp += int(item.hp)
-				status.maxmp += int(item.mp)
-				status.maxsp += int(item.sp)
+				status.maxhp += long(item.hp)
+				status.maxmp += long(item.mp)
+				status.maxsp += long(item.sp)
 				status.maxpayl += int(item.payl_add)
 				status.maxcapa += int(item.capa_add)
 				status.hpheal += int(item.heal_hp)
@@ -787,7 +927,7 @@ class PC:
 			status = self.get_status(LV, STR, DEX, INT, VIT, AGI, MAG)
 			del self.status
 			self.status = status
-	
+
 	def reset_attack(self):
 		if not self.attack:
 			return
