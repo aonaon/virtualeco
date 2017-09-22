@@ -183,5 +183,8 @@ def pack_item_byte_attr(item, attr, item_type):
 def pack_item_unsigned_byte_attr(item, attr, item_type):
 	return pack_unsigned_byte(item.get_int_attr(attr, item_type) if item else 0)
 
+def pack_item_unsigned_short_attr(item, attr, item_type):
+	return pack_unsigned_short(item.get_int_attr(attr, item_type) if item else 0)
+
 def pack_item_str_attr(item, attr, item_type):
 	return pack_str(item.get_str_attr(attr, item_type) if item else 0)

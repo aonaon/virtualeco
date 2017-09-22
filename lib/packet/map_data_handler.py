@@ -132,7 +132,7 @@ class MapDataHandler:
 						continue
 					self.send("122f", pet) #pet info
 				for monster in self.pc.map_obj.monster_list:
-					if monster.hp <= 0:
+					if monster.status.hp <= 0:
 						continue
 					self.send("122a", (monster.id,)) #モンスターID通知
 					self.send("1220", monster) #モンスター情報
@@ -176,9 +176,14 @@ class MapDataHandler:
 			self.word_front.encode("hex"), self.word_back.encode("hex"),
 		)
 	
+	
 	def do_0032(self, data_io):
 		#接続確認(マップサーバとのみ) 20秒一回
-		self.send("0033", True) #reply_ping=True
+		self.send("0033", "ping") #reply_ping=True
+
+
+	def do_003c(self, data_io):
+		general.log("[ map ] detected cheat tool")
 	
 	def do_0010(self, data_io):
 		#マップサーバーに認証情報の送信
@@ -204,7 +209,12 @@ class MapDataHandler:
 				break
 		else:
 			self.stop()
-	
+
+	def do_0037(self, data_io):#do_01fd
+		general.log("[ map ] undef packet(friend count)")
+		#----------------------------
+		#----------------------------
+
 	def do_01fd(self, data_io):
 		#選択したキャラ番号通知
 		unknow = io_unpack_int(data_io)
@@ -227,65 +237,89 @@ class MapDataHandler:
 		if not self.pc.map_obj:
 			self.pc.set_map(10023100) #アップタウン東可動橋
 			self.pc.set_coord(random.randint(252, 253), random.randint(126, 129))
+
+		self.send("1f72", False) #もてなしタイニーアイコン
 		self.send("1239", self.pc, 10) #キャラ速度通知・変更 #マップ読み込み中は10
+		self.send("0fa7", self.pc) #キャラのモード変更
 		self.send("1a5f") #右クリ設定
+
 		self.send_item_list() #インベントリ情報
+
 		self.send("01ff", self.pc) #自分のキャラクター情報
-		self.send("03f2", 0x04) #システムメッセージ #構えが「叩き」に変更されました
-		self.send("09ec", self.pc) #ゴールド入手
-		
+
+		self.send("1ce8", self.pc) #useable motion_ex_id
+		self.send("1d06", 0b1111) #emotion_ex enumerate
+
 		self.send("0230", self.pc) #現在CAPA/PAYL
-		self.send("0231", self.pc) #最大CAPA/PAYL
+
 		self.send("0221", self.pc) #最大HP/MP/SP
 		self.send("021c", self.pc) #現在のHP/MP/SP/EP
+
 		self.send("157c", self.pc) #キャラの状態
+
 		self.send("0212", self.pc) #ステータス・補正・ボーナスポイント
 		self.send("0217", self.pc) #詳細ステータス
-		self.send("0226", self.pc, 0) #スキル一覧 一次職
+		self.send("0223", self.pc) #属性値
 		self.send("0226", self.pc, 1) #スキル一覧 エキスパ
 		self.send("022d", self.pc) #HEARTスキル
-		self.send("0223", self.pc) #属性値
-		self.send("0244", self.pc) #ステータスウィンドウの職業
-		
-		self.send("022e", self.pc) #リザーブスキル
-		self.send("023a", self.pc) #Lv JobLv ボーナスポイント スキルポイント
-		self.send("0235", self.pc) #EXP/JOBEXP
-		self.send("09e9", self.pc) #キャラの見た目を変更
-		self.send("0fa7", self.pc) #キャラのモード変更
-		self.send("1f72") #もてなしタイニーアイコン
+		#self.send("22d2", self.pc) #不明
+
 		self.send("122a") #モンスターID通知
-		self.send("1bbc") #スタンプ帳詳細
-		self.send("025d") #不明
+		self.send("0235", self.pc) #EXP/JOBEXP
+
+		self.send("0244", self.pc) #ステータスウィンドウの職業
+		self.send("023a", self.pc) #Lv JobLv ボーナスポイント スキルポイント
+
+		self.send("22d4", self.pc) #各デュアルジョブレベル
+
+		self.send("0237", self.pc) #フラグ？
+		self.send("196e", self.pc) #クエスト回数・時間
+
+		self.send("1bbc", self.pc, 0)
+		self.send("1bbc", self.pc, 1)
+
+		self.send("025d", self.pc) #限界突破
 		self.send("0695") #不明
-		for i in xrange(14):
-			self.send("1ce9", i) #useable motion_ex_id
-		self.send("1d06", 0b1111) #emotion_ex enumerate
-		self.send("0236", self.pc) #wrp ranking関係
-		self.send("1b67", self.pc) #MAPログイン時に基本情報を全て受信した後に受信される
+		self.send("2260") #不明
+		self.send("2288") #旅人のメモ
+
+		self.send("2198", self.pc) #ぺっとのえさ
+
+		self.send("0236", self.pc) #MAPログイン時に基本情報を全て受信した後に受信される
+
+		# self.send("1acc", self.pc) #リング情報
+		# self.send("1ad1", self.pc) #キャラのリングネーム通知
+
+		self.send("0221", self.pc) #最大HP/MP/SP
+		self.send("021c", self.pc) #現在のHP/MP/SP/EP
+
+		# self.send("1ace", self.pc) #リングメンバーの基本情報・退出
+		# self.send("19f5", self.pc) #リングメンバーの情報
+		# self.send("2017", self.pc) #飛空城の入手状況
+		# self.send("19e6", self.pc) #リングメンバーのオンライン情報
+
+
 		general.log("[ map ] send pc info success")
-	
+
+	def do_13c7(self, data_io):
+		general.log("[ map ] unknown(13c7)")
+
 	def do_11fe(self, data_io):
 		#MAPワープ完了通知
 		general.log("[ map ]", "map load")
 		self.pc.set_visible(True)
-		self.send("1239", self.pc) #キャラ速度通知・変更
-		self.send("196e", self.pc) #クエスト回数・時間
-		#self.send("0259", self.pc) #ステータス試算結果
-		#self.send("1b67", self.pc) #MAPログイン時に基本情報を全て受信した後に受信される
-		
-		self.send("0230", self.pc) #現在CAPA/PAYL
-		self.send("0231", self.pc) #最大CAPA/PAYL
-		self.send("0221", self.pc) #最大HP/MP/SP
-		self.send("021c", self.pc) #現在のHP/MP/SP/EP
-		self.send("157c", self.pc) #キャラの状態
-		self.send("0212", self.pc) #ステータス・補正・ボーナスポイント
-		self.send("0217", self.pc) #詳細ステータス
+
+		self.send("09e9", self.pc)
 		self.send("0226", self.pc, 0) #スキル一覧 一次職
 		self.send("0226", self.pc, 1) #スキル一覧 エキスパ
 		self.send("022d", self.pc) #HEARTスキル
-		self.send("0223", self.pc) #属性値
-		self.send("0244", self.pc) #ステータスウィンドウの職業
-		
+
+		self.send("13ec", self.pc) #れしぴ
+
+		self.send("196e", self.pc) #クエスト回数・時間
+		#self.send("0259", self.pc) #ステータス試算結果
+		#self.send("1b67", self.pc) #MAPログイン時に基本情報を全て受信した後に受信される
+
 		self.sync_map()
 		self.pc.unset_pet()
 		if self.pc.equip.pet:
@@ -300,9 +334,7 @@ class MapDataHandler:
 			#bad packet, i dont known the structure of 1be4
 			#self.send("1be4", self.pc) #飛空庭ログイン
 			#1bf9 only for reply 1bf8, plz remove when 1be4 work
-			for i, attr in enumerate(general.FLYGARDEN_ATTR_LIST):
-				#飛空庭に装飾品を装着・解除するの結果
-				self.send("1bf9", getattr(self.pc.map_obj.flygarden, attr), i)
+
 			self.send("13bc", 2) #飛空庭の天候
 			self.send("13bd", 4) #飛空庭の天体
 			self.send("1bee", self.pc) #飛空庭の天候
@@ -324,6 +356,9 @@ class MapDataHandler:
 			general.log("[ map ]", "start logout")
 			self.send("0020", self.pc, "logoutstart")
 			self.pc.logout = True
+	
+	def do_001c(self, data_io):
+		self.send("001d")
 	
 	def do_001e(self, data_io):
 		#ログアウト(PASS鍵リセット・マップサーバーとのみ通信)
@@ -382,7 +417,44 @@ class MapDataHandler:
 		obj_id = io_unpack_int(data_io)
 		general.log("[ map ] request object id", obj_id)
 		self.send_object_detail(obj_id)
-	
+
+	def do_02b2(self, data_io):
+		#見た目変更ウィンドウ
+		self.send_map("02b3", self.pc)
+
+	def do_02b4(self, data_io):
+		#見た目変更を確定
+		face = io_unpack_byte(data_io)
+		hair = io_unpack_byte(data_io)
+		color = io_unpack_byte(data_io)
+		script.makeup_head(self.pc, face, hair, color)
+		self.send_map("02b5")
+
+	def do_02b6(self, data_io):
+		if script.takeitem(self.pc, 16017200):
+			for index in xrange(8):
+				if self.pc.mirror_face[index] == -1:
+					self.pc.mirror_face[index] = self.pc.face
+					break
+			self.send_map("02b3", self.pc)
+
+	def do_02b8(self, data_io):
+		if script.takeitem(self.pc, 16004200):
+			for index in xrange(8):
+				if self.pc.mirror_hair[index] == -1:
+					self.pc.mirror_hair[index] = self.pc.hair
+					self.pc.mirror_wig[index] = self.pc.wig
+					break
+			self.send_map("02b3", self.pc)
+
+	def do_02ba(self, data_io):
+		if script.takeitem(self.pc, 16004201):
+			for index in xrange(8):
+				if self.pc.mirror_haircolor[index] == -1:
+					self.pc.mirror_haircolor[index] = self.pc.haircolor
+					break
+			self.send_map("02b3", self.pc)
+
 	def do_13ba(self, data_io):
 		#座る/立つの通知
 		if self.pc.motion_id != 135:
@@ -416,7 +488,15 @@ class MapDataHandler:
 			self.send("09e8", iid, -1, -2, 1) #アイテム装備
 		else:
 			self.pc.set_equip(iid)
-	
+
+	def do_09ff(self, data_io):
+		script.bank_put(self.pc, io_unpack_long(data_io))
+		self.send("0a00", self.pc)
+
+	def do_0a01(self, data_io):
+		script.bank_take(self.pc, io_unpack_long(data_io))
+		self.send("0a02", self.pc)
+
 	def do_0a16(self, data_io):
 		#トレードキャンセル
 		general.log("[ map ] trade: send cancel")
@@ -437,36 +517,37 @@ class MapDataHandler:
 		general.log("[ map ] trade send item list")
 		iid_list = io_unpack_array(io_unpack_int, data_io)
 		count_list = io_unpack_array(io_unpack_short, data_io)
-		gold = io_unpack_int(data_io)
+		gold = io_unpack_long(data_io)
 		self.pc.set_trade_list(gold, zip(iid_list, count_list))
 	
 	def do_09f7(self, data_io):
 		#倉庫を閉じる
 		general.log("[ map ] warehouse closed")
-		self.pc.warehouse_open = None
+		self.pc.warehouse_open_id = None
+		self.pc.warehouse_open = False
 	
-	def do_09fb(self, data_io):
+	def do_09fa(self, data_io):
 		#倉庫から取り出す
 		if len(self.pc.item) >= env.MAX_ITEM_STOCK:
 			#倉庫から取り出した時の結果 #キャラのアイテム数が100個を超えてしまうためキャンセルされました
-			self.send("09fc", -5)
+			self.send("09fb", -5)
 			return
 		item_iid = io_unpack_int(data_io)
 		item_count = io_unpack_short(data_io)
 		general.log("[ map ] take item from warehouse", item_iid, item_count)
 		with self.pc.lock:
-			if self.pc.warehouse_open is None:
+			if self.pc.warehouse_open_id is None:
 				#倉庫から取り出した時の結果 #倉庫を開けていません
-				self.send("09fc", -1)
+				self.send("09fb", -1)
 				return
 			if item_iid not in self.pc.warehouse:
 				#倉庫から取り出した時の結果 #指定されたアイテムは存在しません
-				self.send("09fc", -2)
+				self.send("09fb", -2)
 				return
 			item = self.pc.warehouse[item_iid]
 			if item.count < item_count:
 				#倉庫から取り出した時の結果 #指定された数量が不正です
-				self.send("09fc", -3)
+				self.send("09fb", -3)
 				return
 			elif item.count == item_count:
 				self.pc.warehouse_pop(item_iid)
@@ -474,17 +555,17 @@ class MapDataHandler:
 				item.count -= item_count
 				script.msg(self.pc, "%sを%s個取り出しました"%(item.name, item_count))
 			if item.stock:
-				script.item(self.pc, item.item_id, item_count)
+				script.item(self.pc, item.item_id, item_count, False)
 			else:
 				item_take = general.copy(item)
 				item_take.count = item_count
 				item_take.warehouse = 0
-				self.pc.item_append(item_take)
+				self.pc.item_append(item_take, False)
 			#倉庫から取り出した時の結果 #成功
-			self.send("09fc", 0)
+			self.send("09fb", 0)
 		self.pc.update_item_status()
 	
-	def do_09fd(self, data_io):
+	def do_09fc(self, data_io):
 		#倉庫に預ける
 		item_iid = io_unpack_int(data_io)
 		item_count = io_unpack_short(data_io)
@@ -492,34 +573,37 @@ class MapDataHandler:
 		with self.pc.lock:
 			if len(self.pc.warehouse) >= env.MAX_WAREHOURSE_STOCK:
 				#倉庫に預けた時の結果 倉庫のアイテム数が上限を超えてしまうためキャンセルされました
-				self.send("09fe", -4)
+				self.send("09fd", -4)
 				return
-			if self.pc.warehouse_open is None:
+			if self.pc.warehouse_open_id is None:
 				#倉庫に預けた時の結果 #倉庫を開けていません
-				self.send("09fe", -1)
+				self.send("09fd", -1)
 				return
 			if item_iid not in self.pc.item:
 				#倉庫に預けた時の結果 #指定されたアイテムは存在しません
-				self.send("09fe", -2)
+				self.send("09fd", -2)
 				return
 			item = self.pc.item[item_iid]
 			if item.count < item_count:
 				#倉庫に預けた時の結果 #指定された数量が不正です
-				self.send("09fe", -3)
+				self.send("09fd", -3)
 			elif item.count == item_count:
-				self.pc.item_pop(item_iid)
+				self.pc.item_pop(item_iid, False)
 			else:
 				item.count -= item_count
 				self.send("09cf", item, item_iid) #アイテム個数変化
-				script.msg(self.pc, "%sを%s個失いました"%(item.name, item_count))
 			item_store = general.copy(item)
 			item_store.count = item_count
-			item_store.warehouse = self.pc.warehouse_open
+			item_store.warehouse = self.pc.warehouse_open_id
 			self.pc.warehouse_append(item_store)
 			#倉庫に預けた時の結果 #成功
-			self.send("09fe", 0)
+			self.send("09fd", 0)
 		self.pc.update_item_status()
-	
+
+	def do_09fe(self, data_io):#Select warehouse
+		warehouse_id = io_unpack_int(data_io)
+		script.warehouse(self.pc, warehouse_id)
+
 	def do_09c4(self, data_io):
 		#アイテム使用
 		item_iid = io_unpack_int(data_io)
@@ -549,9 +633,9 @@ class MapDataHandler:
 			self.send("09c6", self.pc, item_event_id, target_id, x, y)
 			skills.use(self.pc, target_id, x, y, item_skill_id, 1)
 	
-	def do_0605(self, data_io):
+	def do_05f7(self, data_io):
 		#NPCメッセージ(選択肢)の返信
-		self.send("0606") #s0605で選択結果が通知された場合の応答
+		self.send("05f8") #s05f7で選択結果が通知された場合の応答
 		with self.pc.lock:
 			self.pc.select_result = io_unpack_byte(data_io)
 	
@@ -561,18 +645,24 @@ class MapDataHandler:
 			self.pc.kanban = io_unpack_str(data_io)
 			self.send_map("041b", self.pc)
 	
-	def do_0617(self, data_io):
+
+	def do_05f5(self, data_io):
+		#文字入力
+		with self.pc.lock:
+			self.pc.input_string = io_unpack_str(data_io)
+
+	def do_0605(self, data_io):
 		#購入・売却のキャンセル
 		with self.pc.lock:
 			self.pc.shop_open = None
 		general.log("[ map ] npcshop / npcsell close")
 	
-	def do_0614(self, data_io):
+	def do_0602(self, data_io):
 		#NPCショップのアイテム購入
 		general.log("[ map ] npcshop")
 		with self.pc.lock:
 			if self.pc.shop_open is None:
-				general.log_error("do_0614: shop_open is None")
+				general.log_error("do_0602: shop_open is None")
 				return
 			if hasattr(self.pc.shop_open, "__iter__"):
 				shop_item_list = self.pc.shop_open
@@ -580,7 +670,7 @@ class MapDataHandler:
 				shop = db.shop.get(self.pc.shop_open)
 				if not shop:
 					general.log_error(
-						"do_0614 error: shop_id not exist", self.pc.shop_open)
+						"do_0602 error: shop_id not exist", self.pc.shop_open)
 					return
 				shop_item_list = shop.item
 		item_id_list = io_unpack_array(io_unpack_int, data_io)
@@ -592,26 +682,26 @@ class MapDataHandler:
 			return
 		for item_id, item_count in item_buy_list:
 			if not item_count:
-				general.log_error("do_0614 error: item_count is 0", item_count)
+				general.log_error("do_0602 error: item_count is 0", item_count)
 				continue
 			if item_id not in shop_item_list:
-				general.log_error("do_0614 error: item_id not in shop_item_list", 
+				general.log_error("do_0602 error: item_id not in shop_item_list", 
 					item_id, shop_item_list)
 				continue
 			item = db.item.get(item_id)
 			if not item:
-				general.log_error("do_0614 error: item_id not exist", item_id)
+				general.log_error("do_0602 error: item_id not exist", item_id)
 				continue
 			if script.takegold(self.pc, (int(item.price/10.0) or 1)*item_count):
 				script.item(self.pc, item_id, item_count)
 		self.pc.update_item_status()
 	
-	def do_0616(self, data_io):
+	def do_0604(self, data_io):
 		#ショップで売却
 		general.log("[ map ] npcsell")
 		with self.pc.lock:
 			if self.pc.shop_open != 65535:
-				general.log_error("do_0616: shop_open != 65535", self.pc.shop_open)
+				general.log_error("do_0604: shop_open != 65535", self.pc.shop_open)
 				return
 		item_iid_list = io_unpack_array(io_unpack_int, data_io)
 		item_count_list = io_unpack_array(io_unpack_int, data_io)
@@ -620,17 +710,17 @@ class MapDataHandler:
 		with self.pc.lock:
 			for item_iid, item_count in item_sell_list:
 				if not item_count:
-					general.log_error("do_0616: not item_count", item_count)
+					general.log_error("do_0604: not item_count", item_count)
 					continue
 				if self.pc.in_equip(item_iid):
-					general.log_error("do_0616: in_equip(item_iid)", item_iid)
+					general.log_error("do_0604: in_equip(item_iid)", item_iid)
 					continue
 				item = self.pc.item.get(item_iid)
 				if not item:
-					general.log_error("do_0616: not item", item_iid)
+					general.log_error("do_0604: not item", item_iid)
 					continue
 				if item.count < item_count:
-					general.log_error("do_0616: item.count < item_count")
+					general.log_error("do_0604: item.count < item_count")
 					continue
 				if script.gold(self.pc, (int(item.price/100.0) or 1)*item_count):
 					if item.count <= item_count:
@@ -710,9 +800,13 @@ class MapDataHandler:
 		self.send_map("11f9", self.pc, 0x01) #キャラ移動アナウンス 向き変更のみ
 		self.send_map("11f9", p, 0x01) #キャラ移動アナウンス 向き変更のみ
 		motion = random.choice((113, 163, 164))
-		self.pc.set_motion(motion, False)
-		p.set_motion(motion, False)
-	
+		if motion == 113:
+			motion_loop = True
+		else:
+			motion_loop = False
+		self.pc.set_motion(motion, motion_loop)
+		p.set_motion(motion, motion_loop)
+
 	def do_0a0a(self, data_io):
 		#send trade ask
 		target_id = io_unpack_int(data_io)
@@ -850,5 +944,82 @@ class MapDataHandler:
 		y = io_unpack_unsigned_byte(data_io)
 		skill_lv = io_unpack_byte(data_io)
 		skills.use(self.pc, target_id, x, y, skill_id, skill_lv)
+		
+	def do_1cf2(self, data_io):
+		"""お顔スイッチャー開始"""
+		self.send("1cf3")
+
+	def do_1cf6(self, data_io):
+		"""お顔スイッチャー完了"""
+		self.send("1cf5")
+		
+	def do_1cf4(self, data_io):
+		"""お顔決定()"""
+		iid = io_unpack_int(data_io)
+		face_id = io_unpack_short(data_io)
+		script.takeitem_byiid(self.pc, iid, 1)
+		script.face(self.pc, face_id)
+
+	def do_060f(self, data_io):
+		"""染色アイテム決定"""
+		#所持状態が検査されていないため要変更
+		unknown = io_unpack_int(data_io)
+		iid = io_unpack_int(data_io)
+		target_id = io_unpack_int(data_io)
+		script.takeitem_byiid(self.pc, iid, 1)
+		script.item(self.pc, target_id, 1)
+		script.dyeing(self.pc)
+
+	def do_0611(self, data_io):
+		"""染色ウィンドウを閉じる"""
+		script.unlock_move(self.pc)
+
+	def do_121d(self, data_io):
+		"""種族モーション変更"""
+		race_motion_id = io_unpack_short(data_io)
+		self.send_map("121e", self.pc, race_motion_id)
+		general.log("[ map ] race motion id:%s"%(race_motion_id))
+
+	def do_0617(self, data_io):
+		"""髪型変更(要変更)"""
+		hair_cat_id = io_unpack_int(data_io)
+		hair = io_unpack_short(data_io)
+		wig = io_unpack_short(data_io)
+		if hair_cat_id != -1:
+			general.log("[ map ] use hair introduce id:%s"%(hair_cat_id))
+		if hair != -1:
+			script.haircut(self.pc, hair, wig)
+			self.send("0618", hair, wig)
+
+	def do_21a1(self, data_io):
+		#連動モーション実行
+		pmt_index = io_unpack_int(data_io)
+		script.motion_together_with_partners(self.pc, pmt_index)
+
+	def do_09ea(self, data_io):
+		#インベントリ整列情報
+		general.log("[ map ] inventry sort")
+
+	def do_1edd(self, data_io):
+		"""転生EX更新"""
+		script.ex(self.pc, io_unpack_byte(data_io))
+		script.wing(self.pc, io_unpack_byte(data_io))
+		script.wingcolor(self.pc, io_unpack_byte(data_io))
+
+	def do_1ede(self, data_io):
+		"""転生EX見た目更新要求(送信した数だけ更新)"""
+		script.update(self.pc)
+
+	def do_18ec(self, data_io):
+		"""ゴレカタでアイテム検索したときに送信される"""
+		#TODO: アイテム取り出しにしておく
+		script.item(self.pc, io_unpack_int(data_io))
+
+	def do_2418(self, data_io):
+		"""見た目称号設定（送信）"""
+		title = io_unpack_array(io_unpack_int, data_io)
+		#self.pc.pctitle = title
+		general.log("[ map ] pc title set:%s"%(title))
+		self.send("2419", self.pc, title)
 
 MapDataHandler.name_map = general.get_name_map(MapDataHandler.__dict__, "do_")
