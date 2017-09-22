@@ -41,11 +41,14 @@ def set_pet(pc):
 		with pc.user.lock and pet.lock:
 			pc.pet = pet
 			pet.master = pc
-			pet.set_map(pc.map_id)
-			pet.set_coord_from_master()
-			pet.set_dir(pc.dir)
-			pet.start()
-			pc.map_send_map("122f", pet) #pet info
+			if pc.item.get(pc.equip.pet).check_type(general.PET_TYPE_LIST):
+				pet.set_map(pc.map_id)
+				pet.set_coord_from_master()
+				pet.set_dir(pc.dir)
+				pet.start()
+				pc.map_send_map("122f", pet) #pet info
+			else:
+				pet.start()
 			general.log("[ pet ] set pet id %s"%(pc.pet.id))
 	return True
 

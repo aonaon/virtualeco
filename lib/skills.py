@@ -46,16 +46,56 @@ def get_monster(pc, target_id, x, y, skill_id, skill_lv):
 		return
 	return monster
 
-def start_cast(pc, target_id, x, y, skill_id, skill_lv, cast):
+def start_cast(pc, target_id, x, y, skill_id, skill_lv,  cast=0, error=0, heart=0):
 	#スキル使用通知
-	pc.map_send_map("1389", pc, target_id, x, y, skill_id, skill_lv, 0, cast)
+	pc.map_send_map("1389", pc, target_id, x, y, skill_id, skill_lv, cast, error, heart)
 	time.sleep(cast/1000.0)
 
-def do_3054(pc, target_id, x, y, skill_id, skill_lv):
-	"""ヒーリング 対象のHPを回復する"""
+def do_2110(pc, target_id, x, y, skill_id, skill_lv):
+	"""ブロウ 相手を武器で殴りつける"""
+	monster = get_monster(pc, target_id, x, y, skill_id, skill_lv)
+	if monster is None:
+		return
 	start_cast(pc, target_id, x, y, skill_id, skill_lv, 500)
-	#スキル使用結果通知（対象：単体）, HP回復 #motion wrong, reason not found
-	pc.map_send_map("1392", pc, (target_id,), skill_id, skill_lv, (-100,), (0x11,))
+	monsters.skill_attack_monster(pc, monster, 40, skill_id, skill_lv)
+	pc.set_battlestatus(1)
+
+def do_2442(pc, target_id, x, y, skill_id, skill_lv):
+	"""信頼の証"""
+	start_cast(pc, pc.id, -1, -1, skill_id, 1, 0, 0, 3)
+	pc.map_send_map("138a", pc, 0)
+	script.run_script(pc, 1000000000)
+
+def do_2443(pc, target_id, x, y, skill_id, skill_lv):
+	"""メタモル"""
+	if not pc.pet and pc.metamor is None:
+		start_cast(pc, pc.id, -1, -1, skill_id, skill_lv, 100, -31)
+		pc.map_send_map("138a", pc, -1)
+		return
+	if pc.pet and pc.item.get(pc.equip.pet).check_type(general.RIDE_TYPE_LIST):
+		start_cast(pc, pc.id, -1, -1, skill_id, skill_lv, 100, -7)
+		pc.map_send_map("138a", pc, -1)
+		return
+	with pc.lock:
+		if pc.metamor is None:
+			if not pc.pet:
+				start_cast(pc, pc.id, -1, -1, skill_id, skill_lv, 100, -31)
+			else:
+				start_cast(pc, pc.id, -1, -1, skill_id, skill_lv, 100, 0)
+				pc.metamor = pc.pet.item[1].pict_id
+		else:
+			pc.metamor = None
+		pc.map_send_map("020d", pc)
+		pc.map_send_map("1397", pc, (), skill_id, skill_lv, (), ())
+		pc.map_send_map("138a", pc, 0)
+
+def do_3009(pc, target_id, x, y, skill_id, skill_lv):
+	"""ファイアブラスト 対象の範囲に火焔攻撃を行う"""
+	monster = get_monster(pc, target_id, x, y, skill_id, skill_lv)
+	if monster is None:
+		return
+	start_cast(pc, target_id, x, y, skill_id, skill_lv, 500)
+	monsters.skill_attack_monster_range(pc, monster, (3, 3), 50, skill_id, skill_lv)
 	pc.set_battlestatus(1)
 
 def do_3029(pc, target_id, x, y, skill_id, skill_lv):
@@ -65,6 +105,27 @@ def do_3029(pc, target_id, x, y, skill_id, skill_lv):
 		return
 	start_cast(pc, target_id, x, y, skill_id, skill_lv, 500)
 	monsters.skill_attack_monster(pc, monster, 75, skill_id, skill_lv)
+	pc.set_battlestatus(1)
+
+def do_3054(pc, target_id, x, y, skill_id, skill_lv):
+	"""ヒーリング 対象のHPを回復する"""
+	start_cast(pc, target_id, x, y, skill_id, skill_lv, 500)
+	#スキル使用結果通知（対象：単体）, HP回復 #motion wrong, reason not found
+	pc.map_send_map("1389", pc, target_id, x, y, skill_id, skill_lv, 500)
+	pc.map_send_map("1392", pc, (target_id,), skill_id, skill_lv, (-100,), (0x19,))
+	pc.set_battlestatus(1)
+
+def do_3250(pc, target_id, x, y, skill_id, skill_lv):
+	"""飛空庭のひも"""
+	usermaps.set_usermap(pc, usermaps.USERMAP_TYPE_FLYGARDEN, x, y)
+	#スキル使用結果通知（対象：地面）
+	pc.map_send_map("138d", pc, (), x, y, skill_id, skill_lv, (), ())
+
+def do_3368(pc, target_id, x, y, skill_id, skill_lv):
+	"""カーディナル"""
+	start_cast(pc, target_id, x, y, skill_id, skill_lv, 0)
+	pc.map_send_map("1389", pc, target_id, x, y, skill_id, skill_lv, 0)
+	pc.map_send_map("1397", pc, (target_id,), skill_id, skill_lv, (0,), (0x08,))
 	pc.set_battlestatus(1)
 
 def do_3416(pc, target_id, x, y, skill_id, skill_lv):
@@ -83,30 +144,6 @@ def do_3432(pc, target_id, x, y, skill_id, skill_lv):
 	#script.effect(pc, 4387, target_id)
 	monsters.skill_attack_monster_range(pc, monster, (7, 7), 99, skill_id, skill_lv)
 	pc.set_battlestatus(1)
-
-def do_3009(pc, target_id, x, y, skill_id, skill_lv):
-	"""ファイアブラスト 対象の範囲に火焔攻撃を行う"""
-	monster = get_monster(pc, target_id, x, y, skill_id, skill_lv)
-	if monster is None:
-		return
-	start_cast(pc, target_id, x, y, skill_id, skill_lv, 500)
-	monsters.skill_attack_monster_range(pc, monster, (3, 3), 50, skill_id, skill_lv)
-	pc.set_battlestatus(1)
-
-def do_2110(pc, target_id, x, y, skill_id, skill_lv):
-	"""ブロウ 相手を武器で殴りつける"""
-	monster = get_monster(pc, target_id, x, y, skill_id, skill_lv)
-	if monster is None:
-		return
-	start_cast(pc, target_id, x, y, skill_id, skill_lv, 500)
-	monsters.skill_attack_monster(pc, monster, 40, skill_id, skill_lv)
-	pc.set_battlestatus(1)
-
-def do_3250(pc, target_id, x, y, skill_id, skill_lv):
-	"""飛空庭のひも"""
-	usermaps.set_usermap(pc, usermaps.USERMAP_TYPE_FLYGARDEN, x, y)
-	#スキル使用結果通知（対象：地面）
-	pc.map_send_map("138d", pc, (), x, y, skill_id, skill_lv, (), ())
 
 name_map = general.get_name_map(globals(), "do_")
 

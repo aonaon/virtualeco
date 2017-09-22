@@ -25,6 +25,7 @@ class User:
 		self.path = path
 		self.pc_list = []
 		self.login_client = None
+		self.wlogin_client = None
 		self.map_client = None
 		self.lock = threading.RLock()
 		self.load()
@@ -67,13 +68,20 @@ class User:
 		with self.lock:
 			if self.login_client:
 				self.login_client._stop()
+			self.login_client = None
+		self.wreset_login()
+
+	def wreset_login(self):
+		with self.lock:
+			if self.wlogin_client:
+				self.wlogin_client._stop()
 			for p in self.pc_list:
 				if not p: continue
 				if p.online:
 					p.reset_login()
 					general.log("[users] reset save", p)
 					p.save()
-			self.login_client = None
+			self.wlogin_client = None
 		self.reset_map()
 	
 	def reset_map(self):
@@ -115,6 +123,7 @@ def delete_user(user_name, password, delete_password):
 		if user.password != password_md5: return 0x02 #password error
 		if user.delpassword != delete_password_md5: return 0x02 #password error
 		user.reset_login() #close connection
+		user.wreset_login()
 		with user_list_lock:
 			try:
 				user_list.remove(user)
@@ -167,6 +176,7 @@ def make_new_pc(user, num, name, race, gender, hair, hair_color, face):
 	cfg.set("main", "name", str(name))
 	cfg.set("main", "gmlevel", str(env.DEFAULT_GMLEVEL))
 	cfg.set("main", "race", str(race))
+	cfg.set("main", "race_motion", "0")
 	cfg.set("main", "form", "0")
 	cfg.set("main", "gender", str(gender))
 	cfg.set("main", "hair", str(hair))
@@ -213,26 +223,51 @@ def make_new_pc(user, num, name, race, gender, hair, hair_color, face):
 	cfg.set("equip", "shoes", "3")
 	cfg.set("equip", "socks", "0")
 	cfg.set("equip", "pet", "0")
+	cfg.set("equip", "effect", "0")
+	cfg.add_section("mirror")
+	cfg.set("mirror", "face", str(face)+","+("-1,"*7))
+	cfg.set("mirror", "hair", str(hair)+","+("-1,"*7))
+	cfg.set("mirror", "wig", "-1,"*8)
+	cfg.set("mirror", "haircolor", str(hair_color)+","+("-1,"*7))
 	cfg.add_section("sort")
 	cfg.set("sort", "item", "1,2,3,4,5")
 	cfg.set("sort", "warehouse", "")
 	cfg.add_section("item")
-	if gender != 0: 
-		cfg.set("item", "1", "50000055,1")
-		cfg.set("item", "2", "50010300,1")
-		cfg.set("item", "3", "50060100,1")
+	if race == 0:
+		cfg.set("item", "1", "60156400,1")
+		cfg.set("item", "2", "50240500,1")
+		cfg.set("item", "3", "50240600,1")
 		cfg.set("item", "4", "10020114,1")
 		cfg.set("item", "5", "60010082,1")
-	else:
-		cfg.set("item", "1", "50000000,1") #スモック♂
-		cfg.set("item", "2", "50010300,1")
-		cfg.set("item", "3", "50060150,1")
+	elif race == 1:
+		cfg.set("item", "1", "60156401,1")
+		cfg.set("item", "2", "50240501,1")
+		cfg.set("item", "3", "50240600,1")
 		cfg.set("item", "4", "10020114,1")
 		cfg.set("item", "5", "60010082,1")
+	elif race == 2:
+		cfg.set("item", "1", "60156402,1")
+		cfg.set("item", "2", "50240502,1")
+		cfg.set("item", "3", "50240600,1")
+		cfg.set("item", "4", "10020114,1")
+		cfg.set("item", "5", "60010082,1")
+	elif race == 3:
+		if gender != 0:
+			cfg.set("item", "1", "50000950,1")
+			cfg.set("item", "2", "50068550,1")
+			cfg.set("item", "3", "50060350,1")
+			cfg.set("item", "4", "10020114,1")
+			cfg.set("item", "5", "60010082,1")
+		else:
+			cfg.set("item", "1", "50000900,1")
+			cfg.set("item", "2", "50068500,1")
+			cfg.set("item", "3", "50060300,1")
+			cfg.set("item", "4", "10020114,1")
+			cfg.set("item", "5", "60010082,1")
 	cfg.add_section("warehouse")
 	cfg.add_section("dic")
 	cfg.add_section("skill")
-	cfg.set("skill", "list", "")
+	cfg.set("skill", "list", "2442,2443")
 	cfg.write(open(path, "wb", base=env.USER_DIR))
 	with user.lock:
 		user.pc_list[num] = PC(user, path)
@@ -272,7 +307,6 @@ def get_pc_from_id(i):
 			return p
 def get_online_pc_list():
 	return filter(lambda p:p.online, get_pc_list())
-
 def backup_user_data():
 	try:
 		zip_path = os.path.join(env.USER_BAK_DIR, "%s.zip"%general.get_today())

@@ -89,12 +89,13 @@ def load():
 	import data.item, data.job, data.npc, data.shop, data.skill
 	import obj.map, obj.monster, obj.pet
 	
-	global item, job, map_obj, monster_obj, npc, pet_obj, shop, skill
+	global item, job, map_obj, monster_obj, npc, pet_obj, partner_obj, shop, skill
 	item = load_database("item", data.item.Item)
 	job = load_database("job", data.job.Job)
 	map_obj = load_database("map", obj.map.Map)
 	monster_obj = load_database("monster", obj.monster.Monster)
 	npc = load_database("npc", data.npc.Npc)
 	pet_obj = load_database("pet", obj.pet.Pet)
+	partner_obj = load_database("partner", obj.pet.Pet)
 	shop = load_database("shop", data.shop.Shop)
 	skill = load_database("skill", data.skill.Skill)

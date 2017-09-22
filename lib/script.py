@@ -65,8 +65,7 @@ def run_script(pc, event_id, item_event_id=0):
 		lock_move(pc)
 		pc.event_id = event_id
 		pc.item_event_id = item_event_id
-		pc.map_send("05dc") #イベント開始の通知
-		pc.map_send("05e8", event_id) #EventID通知 Event送信に対する応答
+		pc.map_send("05e7", event_id) #EventID通知 Event送信に対する応答
 	if usermaps.map_id_in_range_flygarden(event_id):
 		script_id = usermaps.MIN_FLYGARDEN_ID
 	else:
@@ -77,7 +76,7 @@ def run_script(pc, event_id, item_event_id=0):
 		if event:
 			event["main"](pc)
 		else:
-			say(pc, "Script id %s not exist."%script_id, "")
+			msg(pc, "Script id %s not exist."%script_id)
 			#raise ValueError("Script id not exist")
 	except:
 		general.log_error("run_script", event_id, traceback.format_exc())
@@ -85,7 +84,6 @@ def run_script(pc, event_id, item_event_id=0):
 		pc.event_id = 0
 		pc.item_event_id = 0
 		if pc.online:
-			pc.map_send("05dd") #イベント終了の通知
 			unlock_move(pc)
 
 def run(pc, event_id, item_event_id=0):
@@ -133,7 +131,7 @@ def send_server(*args):
 
 NAME_WITH_TYPE = {
 	"run": (int,), #event_id
-	"help": (),
+	"vecohelp": (),
 	"reloadscript": (),
 	"reloadsinglescript": (str,),
 	"shutdown_server": (str,), #confirm_word
@@ -147,6 +145,7 @@ NAME_WITH_TYPE = {
 	"warpraw": (int, int), #rawx, rawy
 	"update": (),
 	"hair": (int,), #hair_id
+	"haircat": (int,),
 	"haircolor": (int,), #haircolor_id
 	"face": (int,), #face_id
 	"wig": (int,), #wig_id
@@ -159,6 +158,7 @@ NAME_WITH_TYPE = {
 	"printitem": (),
 	"takeitem": (int, int), #item_id, item_count
 	"dustbox": (),
+	"dyeing": (),
 	"warehouse": (int,), #warehouse_id
 	"playbgm": (int, int, int), #sound_id, loop, volume
 	"playse": (int, int, int, int), #sound_id, loop, volume, balance
@@ -193,10 +193,10 @@ NAME_WITH_TYPE = {
 	"skill_clear": (),
 }
 
-def help(pc):
+def vecohelp(pc):
 	msg(pc, """
 /run event_id
-/help
+/vecohelp
 /reloadscript
 /reloadsinglescript path
 /shutdown_server confirm_word
@@ -210,6 +210,7 @@ def help(pc):
 /warpraw rawx rawy
 /update
 /hair hair_id
+/haircat mode (0,change 1,exchange 2,catalog)
 /haircolor haircolor_id
 /face face_id
 /wig ex_id
@@ -222,6 +223,7 @@ def help(pc):
 /printitem
 /takeitem item_id item_count
 /dustbox
+/dyeing
 /warehouse warehouse_id
 /playbgm sound_id loop volume
 /playse sound_id loop volume balance
@@ -324,7 +326,7 @@ def user(pc):
 	message += "online count: %d"%online_count
 	msg(pc, message)
 
-def say(pc, message, npc_name=None, npc_motion_id=131, npc_id=None):
+def say(pc, message, npc_name=None, npc_motion_id=131, npc_id=None, npc_img=0):
 	if npc_id is None:
 		npc_id = pc.event_id
 	general.assert_value_range("npc_id", npc_id, general.RANGE_UNSIGNED_INT)
@@ -333,12 +335,10 @@ def say(pc, message, npc_name=None, npc_motion_id=131, npc_id=None):
 		if npc: npc_name = npc.name
 		else: npc_name = ""
 	with pc.lock and pc.user.lock:
-		pc.map_send("03f8") #NPCメッセージのヘッダー
+		pc.map_send("03f7") #NPCメッセージのヘッダー
 		message = message.replace("$r", "$R").replace("$p", "$P")
-		for message_line in message.split("$R"):
-			pc.map_send("03f7", 
-				message_line+"$R", npc_name, npc_motion_id, npc_id) #NPCメッセージ
-		pc.map_send("03f9") #NPCメッセージのフッター
+		pc.map_send("03f9", tuple(msg+"$R" for msg in message.split("$R")) , npc_name, npc_motion_id, npc_id, npc_img) #NPCメッセージ
+		pc.map_send("03fa") #NPCメッセージのフッター
 
 def msg(pc, message):
 	with pc.lock and pc.user.lock:
@@ -361,22 +361,24 @@ def where(pc):
 			pc.map_obj.name, pc.map_obj.map_id, pc.x, pc.y, pc.dir,
 			pc.rawx, pc.rawy, pc.rawdir))
 
-def warp(pc, map_id, x=None, y=None):
+def warp(pc, map_id, x=None, y=None, dir=0):
 	if x != None and y != None:
 		general.assert_value_range("x", x, general.RANGE_UNSIGNED_BYTE)
 		general.assert_value_range("y", y, general.RANGE_UNSIGNED_BYTE)
 	with pc.lock and pc.user.lock:
 		if map_id != pc.map_obj.map_id:
 			pc.set_visible(False) #set visible false before 11fd
+			pc.set_dir(dir)
 			if not pc.set_map(map_id):
 				raise ValueError("map_id %d not found."%map_id)
 			if x is not None and y is not None:
 				pc.set_coord(x, y)
 			else:
 				pc.set_coord(pc.map_obj.centerx, pc.map_obj.centery)
-			pc.set_dir(0)
 			pc.map_send("11fd", pc) #マップ変更通知
 			pc.map_send("122a") #モンスターID通知
+			if usermaps.map_id_in_range_flygarden(pc.map_obj.map_id):
+				pc.map_send("1be4", pc)
 		else:
 			if x is not None and y is not None:
 				pc.set_coord(x, y)
@@ -397,7 +399,12 @@ def warpraw(pc, rawx, rawy):
 
 def update(pc):
 	with pc.lock and pc.user.lock:
-		pc.map_send_map("020d", pc) #キャラ情報
+		pc.map_send_map("020d", pc) #キャラ情報(全体)
+
+def update_head(pc):
+	with pc.lock and pc.user.lock:
+		pc.map_send_map("0210", pc) #キャラ情報(頭部)
+		pc.map_send_map("020d", pc) #キャラ情報(全体)
 
 def update_pet(pc):
 	with pc.lock and pc.user.lock:
@@ -407,25 +414,52 @@ def hair(pc, hair_id):
 	general.assert_value_range("hair_id", hair_id, general.RANGE_SHORT)
 	with pc.lock:
 		pc.hair = hair_id
-	update(pc)
+	update_head(pc)
+
+def show_haircat(pc, mode):
+	pc.map_send("0616", mode)
+
+def haircut(pc, hair, wig):
+	pc.hair = hair
+	pc.wig = wig
+	update_head(pc)
+
+def makeup_head(pc, face=-1, hair=-1, color=-1):#index_id
+	with pc.lock:
+		if face != -1:
+			temp_face = pc.mirror_face[face]
+			pc.mirror_face[face] = pc.face
+			pc.face = temp_face
+		if hair != -1:
+			temp_hair = pc.mirror_hair[hair]
+			pc.mirror_hair[hair] = pc.hair
+			pc.hair = temp_hair
+			temp_wig = pc.mirror_wig[hair]
+			pc.mirror_wig[hair] = pc.wig
+			pc.wig = temp_wig
+		if color != -1:
+			temp_color = pc.mirror_haircolor[color]
+			pc.mirror_haircolor[color] = pc.haircolor
+			pc.haircolor = temp_color
+	update_head(pc)
 
 def haircolor(pc, haircolor_id):
 	general.assert_value_range("haircolor_id", haircolor_id, general.RANGE_BYTE)
 	with pc.lock:
 		pc.haircolor = haircolor_id
-	update(pc)
+	update_head(pc)
 
 def face(pc, face_id):
 	general.assert_value_range("face_id", face_id, general.RANGE_SHORT)
 	with pc.lock:
 		pc.face = face_id
-	update(pc)
+	update_head(pc)
 
 def wig(pc, wig_id):
 	general.assert_value_range("wig_id", wig_id, general.RANGE_SHORT)
 	with pc.lock:
 		pc.wig = wig_id
-	update(pc)
+	update_head(pc)
 
 def ex(pc, ex_id):
 	general.assert_value_range("ex_id", ex_id, general.RANGE_BYTE)
@@ -452,10 +486,10 @@ def motion(pc, motion_id, motion_loop=False):
 def motion_loop(pc, motion_id):
 	motion(pc, motion_id, True)
 
-def item(pc, item_id, item_count=1):
+def item(pc, item_id, item_count=1, showlog=True):
 	with pc.lock and pc.user.lock:
-		return _item(pc, item_id, item_count)
-def _item(pc, item_id, item_count):
+		return _item(pc, item_id, item_count, showlog)
+def _item(pc, item_id, item_count, showlog):
 	general.assert_value_range("item_count", item_count, general.RANGE_UNSIGNED_SHORT)
 	general.assert_value_range("item_id", item_id, general.RANGE_UNSIGNED_INT)
 	if len(pc.item) >= env.MAX_ITEM_STOCK:
@@ -480,9 +514,10 @@ def _item(pc, item_id, item_count):
 					item_count = 0
 					item_exist.count += item_count_add
 				pc.map_send("09cf", item_exist, iid) #アイテム個数変化
-				msg(pc, "%sを%s個入手しました"%(
-					item_exist.name, item_count_add
-				))
+				if showlog:
+					msg(pc, "%sを%s個入手しました"%(
+						item_exist.name, item_count_add
+					))
 				item_stock_exist = True
 				break
 		if item_stock_exist:
@@ -493,7 +528,7 @@ def _item(pc, item_id, item_count):
 		else:
 			item.count = item_count
 			item_count = 0
-		pc.item_append(item)
+		pc.item_append(item, showlog)
 	pc.update_item_status()
 	return True
 
@@ -535,7 +570,7 @@ def _takeitem(pc, item_id, item_count):
 			if item_exist.count > item_count:
 				item_exist.count -= item_count
 				pc.map_send("09cf", item_exist, iid) #アイテム個数変化
-				msg(pc, "%sを%s個失いました"%(item.name, item_count))
+				msg(pc, "%sを%s個失いました"%(item_exist.name, item_count))
 			else:
 				pc.item_pop(iid)
 			break
@@ -573,6 +608,10 @@ def takeitem_byiid(pc, item_iid, item_count):
 def dustbox(pc):
 	run(pc, 12000170) #携帯ゴミ箱
 
+def dyeing(pc):
+	lock_move(pc)
+	pc.map_send("060e")
+
 def update_item(pc): #not for command
 	with pc.lock and pc.user.lock:
 		for iid, item in pc.item.iteritems():
@@ -600,9 +639,23 @@ def npctrade(pc): #not for command
 	#update_item(pc)
 	return pc.trade_return_list
 
+def warehouse_open(pc, warehouse_id=0):
+	pc.warehouse_open = True
+	playse(pc, 2060)
+	warehouse(pc, warehouse_id)
+	while True:
+		with pc.lock:
+			if not pc.warehouse_open:
+				return
+		time.sleep(0.1)
+
 def warehouse(pc, warehouse_id):
 	general.assert_value_range("warehouse_id", warehouse_id, general.RANGE_BYTE)
-	num_max = 300
+	max_num_list = general.warehouse_max_num
+	if warehouse_id in max_num_list:
+		num_max = max_num_list[warehouse_id]
+	else:
+		num_max = 300
 	num_here = 0
 	num_all = 0
 	with pc.lock:
@@ -612,24 +665,24 @@ def warehouse(pc, warehouse_id):
 				num_here += 1
 	with pc.lock and pc.user.lock:
 		#倉庫インベントリーヘッダ
-		pc.map_send("09f6", warehouse_id, num_here, num_all, num_max)
+		pc.map_send("09f6", warehouse_id, num_here, num_all, num_max, pc.bank)
 		for iid, item in pc.warehouse.iteritems():
 			if item.warehouse == warehouse_id:
 				part = 30 #倉庫
-			else:
-				part = item.warehouse
+				pc.map_send("09f8", item, iid, part)
 			#倉庫インベントリーデータ
-			pc.map_send("09f9", item, iid, part)
-		pc.warehouse_open = warehouse_id
-		pc.map_send("09fa") #倉庫インベントリーフッタ
+		pc.warehouse_open_id = warehouse_id
+		pc.map_send("09f9") #倉庫インベントリーフッタ
 
-def select(pc, option_list, title="", show_cancel=0): #not for command
+def select(pc, option_list, title="", show_cancel=0, option_index=None): #not for command
 	option_list = filter(None, option_list)
 	general.assert_value_range("len(option_list)", len(option_list), (0, 65))
+	if option_index == None:
+		option_index = tuple(i for i in range(len(option_list)))
 	with pc.lock and pc.user.lock:
 		pc.select_result = None
 		#NPCのメッセージのうち、選択肢から選ぶもの
-		pc.map_send("0604", option_list, title, show_cancel)
+		pc.map_send("05f6", option_index, option_list, title, show_cancel)
 	while True:
 		with pc.lock:
 			if not pc.online:
@@ -649,7 +702,7 @@ def playbgm(pc, sound_id, loop=1, volume=100):
 	general.assert_value_range("volume", volume, (0, 100))
 	with pc.lock and pc.user.lock:
 		#音楽を再生する
-		pc.map_send("05f0", sound_id, (1 if loop else 0), volume)
+		pc.map_send("05ec", sound_id, (1 if loop else 0), volume)
 
 def playse(pc, sound_id, loop=0, volume=100, balance=50):
 	general.assert_value_range("sound_id", sound_id, general.RANGE_UNSIGNED_INT)
@@ -657,7 +710,7 @@ def playse(pc, sound_id, loop=0, volume=100, balance=50):
 	general.assert_value_range("balance", balance, (0, 100))
 	with pc.lock and pc.user.lock:
 		#効果音を再生する
-		pc.map_send("05f5", sound_id, (1 if loop else 0), volume, balance)
+		pc.map_send("05ef", sound_id, (1 if loop else 0), volume, balance)
 
 def playjin(pc, sound_id, loop=0, volume=100, balance=50):
 	general.assert_value_range("sound_id", sound_id, general.RANGE_UNSIGNED_INT)
@@ -665,9 +718,9 @@ def playjin(pc, sound_id, loop=0, volume=100, balance=50):
 	general.assert_value_range("balance", balance, (0, 100))
 	with pc.lock and pc.user.lock:
 		#ジングルを再生する
-		pc.map_send("05fa", sound_id, (1 if loop else 0), volume, balance)
+		pc.map_send("05f2", sound_id, (1 if loop else 0), volume, balance)
 
-def effect(pc, effect_id, id=None, x=None, y=None, dir=None):
+def effect(pc, effect_id, id=None, x=None, y=None, unk1=-1, unk2=65535, unk3=255):
 	general.assert_value_range("effect_id", effect_id, general.RANGE_UNSIGNED_INT)
 	if id is not None:
 		general.assert_value_range("id", id, general.RANGE_INT)
@@ -675,11 +728,9 @@ def effect(pc, effect_id, id=None, x=None, y=None, dir=None):
 		general.assert_value_range("x", x, general.RANGE_UNSIGNED_BYTE)
 	if y is not None:
 		general.assert_value_range("y", y, general.RANGE_UNSIGNED_BYTE)
-	if dir is not None:
-		general.assert_value_range("dir", dir, general.RANGE_BYTE)
 	with pc.lock and pc.user.lock:
 		#エフェクト受信
-		pc.map_send_map("060e", pc, effect_id, id, x, y, dir)
+		pc.map_send_map("0600", pc, effect_id, id, x, y, unk1, unk2, unk3)
 
 def speed(pc, speed):
 	general.assert_value_range("speed", speed, general.RANGE_SHORT)
@@ -725,18 +776,18 @@ def npcshop(pc, shop_id):
 		return
 	with pc.lock and pc.user.lock:
 		pc.shop_open = shop_id
-		pc.map_send("0613", pc, shop.item) #NPCのショップウィンドウ
+		pc.map_send("0601", pc, shop.item) #NPCのショップウィンドウ
 
 def npcshop_list(pc, shop_item_list):
 	with pc.lock and pc.user.lock:
 		shop_item_list = tuple(shop_item_list)
 		pc.shop_open = shop_item_list
-		pc.map_send("0613", pc, shop_item_list) #NPCのショップウィンドウ
+		pc.map_send("0601", pc, shop_item_list) #NPCのショップウィンドウ
 
 def npcsell(pc):
 	with pc.lock and pc.user.lock:
 		pc.shop_open = 65535 #sell
-		pc.map_send("0615") #NPCショップウィンドウ（売却）
+		pc.map_send("0603") #NPCショップウィンドウ（売却）
 
 def spawn(pc, monster_id):
 	with pc.lock:
@@ -760,15 +811,14 @@ def emotion_ex(pc, emotion_ex_id):
 	with pc.lock and pc.user.lock:
 		pc.map_send_map("1d0c", pc, emotion_ex_id) #emotion_ex
 
-def shownpc(pc, npc_id):
-	general.assert_value_range("npc_id", npc_id, general.RANGE_UNSIGNED_INT)
+def shownpc(pc, npc_ids):
 	with pc.lock and pc.user.lock:
-		pc.map_send("05e2", npc_id) #show npc
+		pc.map_send("05e2", npc_ids) #show npc
 
 def hidenpc(pc, npc_id):
 	general.assert_value_range("npc_id", npc_id, general.RANGE_UNSIGNED_INT)
 	with pc.lock and pc.user.lock:
-		pc.map_send("05e3", npc_id) #hide npc
+		pc.map_send("05e1", npc_id) #hide npc
 
 def blackout(pc, time_ms):
 	general.assert_value_range("time_ms", time_ms, general.RANGE_UNSIGNED_INT)
@@ -864,5 +914,25 @@ def skill_clear(pc):
 		while pc.skill_list:
 			pc.skill_list.pop()
 		pc.map_send("0226", pc, 0) #スキル一覧
+
+def motion_together_with_partners(pc, pmt_index):
+	#連動モーション用
+	with pc.lock and pc.user.lock:
+		#モーション通知 warning TODO: NEED "(script)partner_motion_together.py"
+		scr_combi = script_list["partner_motion_together"]
+		motions = scr_combi["pmt_use"](pc, pmt_index)
+		p = users.get_pc_from_id(pc.id)
+		pc.pet.set_motion_together_with_partners(motions[0], motions[1], motions[2])
+		p.set_raw_dir(motions[3]*45)
+		pc.map_send_map("11f9", p, 0x13)
+		motion_loop(pc, motions[4])
+
+def reincarnation_ex(pc):
+	#転生EX変更ウィンドウ表示
+	pc.map_send("1edc", pc)
+
+# def sort_items(pc, ar_slot, ar_iid):
+# 	with pc.lock and pc.user.lock:
+
 
 name_map = general.get_name_map(globals(), "")

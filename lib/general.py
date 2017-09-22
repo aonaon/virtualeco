@@ -39,8 +39,8 @@ UPPER_TYPE_LIST = (
 	"ARMOR_UPPER",
 	"COSTUME",
 	"BODYSUIT",
-	"WEDDING",
 	"OVERALLS",
+	"ONEPIECE",
 	"FACEBODYSUIT",
 	"PARTS_BODY", #dem
 )
@@ -70,6 +70,7 @@ RIGHT_TYPE_LIST = (
 	"ARROW",
 	"STRINGS",
 	"EXSWORD",
+	"WEDDING",
 	"PARTS_BLOW", #dem
 	"PARTS_SLASH", #dem
 	"PARTS_STAB", #dem
@@ -89,10 +90,13 @@ BOOTS_TYPE_LIST = (
 	"HALFBOOTS",
 )
 PET_TYPE_LIST = (
-	"BACK_DEMON",
 	"PET",
+	"PARTNER",
+)
+RIDE_TYPE_LIST = (
 	"RIDE_PET",
-	"PET_NEKOMATA",
+	"RIDE_PARTNER",
+	"RIDE_PET_ROBOT",
 )
 HEAD_TYPE_LIST = (
 	"HELM",
@@ -107,11 +111,9 @@ FULLFACE_TYPE_LIST = (
 ACCESORY_FACE_TYPE_LIST = (
 	"ACCESORY_FACE",
 )
-ONEPIECE_TYPE_LIST = (
-	"ONEPIECE",
-)
 BACKPACK_TYPE_LIST = (
 	"BACKPACK",
+	"BACK_DEMON",
 	"PARTS_BACK", #dem
 )
 SOCKS_TYPE_LIST = (
@@ -120,6 +122,7 @@ SOCKS_TYPE_LIST = (
 EFFECT_TYPE_LIST = (
 	"EFFECT",
 )
+
 PARTS_SET_TYPE_LIST = (
 	#not using
 	"SETPARTS_BLOW",
@@ -153,6 +156,13 @@ FLYGARDEN_ATTR_LIST = (
 	#"unknow02",
 	#"unknow03",
 )
+
+warehouse_max_num = {
+	0:300,
+	100:200,
+	200:300,
+	300:300,
+}
 
 class NullClass: pass
 
@@ -272,7 +282,9 @@ def get_item(item_id):
 def get_pet(pet_id):
 	pet = db.pet_obj.get(pet_id)
 	if not pet:
-		return
+		pet = db.partner_obj.get(pet_id)
+		if not pet:
+			return
 	return pet
 def get_monster(monster_id):
 	monster = db.monster_obj.get(monster_id)

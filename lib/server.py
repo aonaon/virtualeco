@@ -9,6 +9,7 @@ import struct
 from lib import env
 from lib import general
 from lib.packet.login_data_handler import LoginDataHandler
+from lib.packet.world_data_handler import WorldDataHandler
 from lib.packet.map_data_handler import MapDataHandler
 from lib.site_packages import rijndael
 from lib.packet.packet_struct import *
@@ -211,6 +212,12 @@ class LoginClient(StandardClient, LoginDataHandler):
 		LoginDataHandler.__init__(self)
 		StandardClient.__init__(self, *args)
 
+class WorldClient(StandardClient, WorldDataHandler):
+	def __init__(self, *args):
+		general.log("[ srv ] world client", args)
+		WorldDataHandler.__init__(self)
+		StandardClient.__init__(self, *args)
+
 class MapClient(StandardClient, MapDataHandler):
 	def __init__(self, *args):
 		general.log("[ srv ] map client", args)
@@ -220,6 +227,10 @@ class MapClient(StandardClient, MapDataHandler):
 class LoginServer(StandardServer):
 	def __init__(self, addr):
 		StandardServer.__init__(self, addr, LoginClient)
+
+class WorldServer(StandardServer):
+	def __init__(self, addr):
+		StandardServer.__init__(self, addr, WorldClient)
 
 class MapServer(StandardServer):
 	def __init__(self, addr):
@@ -232,16 +243,22 @@ def init():
 def assert_address_not_used():
 	general.log_line("[ srv ] server.assert_address_not_used ... ")
 	general.assert_address_not_used((env.SERVER_BROADCAST_ADDR, env.LOGIN_SERVER_PORT))
+	general.assert_address_not_used((env.SERVER_BROADCAST_ADDR, env.WORLD_SERVER_PORT))
 	general.assert_address_not_used((env.SERVER_BROADCAST_ADDR, env.MAP_SERVER_PORT))
 	general.assert_address_not_used((env.SERVER_BROADCAST_ADDR, env.WEB_SERVER_PORT))
 	general.log("done.")
 
 def load():
 	global loginserver
+	global worldserver
 	global mapserver
 	loginserver_bind_addr = (env.SERVER_BIND_ADDR, env.LOGIN_SERVER_PORT)
+	worldserver_bind_addr = (env.SERVER_BIND_ADDR, env.WORLD_SERVER_PORT)
 	mapserver_bind_addr = (env.SERVER_BIND_ADDR, env.MAP_SERVER_PORT)
 	general.log("[ srv ] start login server with\t%s:%d"%loginserver_bind_addr)
 	loginserver = LoginServer(loginserver_bind_addr)
+	general.log("[ srv ] start world server with\t%s:%d"%worldserver_bind_addr)
+	worldserver = WorldServer(worldserver_bind_addr)
 	general.log("[ srv ] start map server with\t%s:%d"%mapserver_bind_addr)
 	mapserver = MapServer(mapserver_bind_addr)
+	 #ローカル専用なので変更しないこと

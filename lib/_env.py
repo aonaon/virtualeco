@@ -4,10 +4,10 @@ import sys
 import os
 import time
 #static
-NAME = "virtualeco"
-LAST_UPDATE = "2013-04-26"
+NAME = "virtualeco_mc"
+LAST_UPDATE = "2017-02-25"
 DATABASE_FORMAT_VERSION = "1.1.3"
-USERDATA_FORMAT_VERSION = "1.1.0"
+USERDATA_FORMAT_VERSION = "1.1.3"
 
 #runtime
 STARTUP_TIME = time.time()
@@ -28,10 +28,12 @@ DUMP_WITH_ZLIB = False
 ZIP_COMPRESS = False
 
 #server config
-LOGIN_SERVER_PORT = 13000
+LOGIN_SERVER_PORT = 13002
+WORLD_SERVER_PORT = 13000
 MAP_SERVER_PORT = 13001
 WEB_SERVER_PORT = 13100
 SERVER_BIND_ADDR = "0.0.0.0"
+SERVER_BROADCAST_NAME = "Virtualeco"
 SERVER_BROADCAST_ADDR = "localhost"
 DEFAULT_GMLEVEL = 255
 LOGIN_EVENT_ID = 30
@@ -41,7 +43,7 @@ MAX_WAREHOURSE_STOCK = 500
 SHUTDOWN_CONFIRM_WORD = "-y"
 GMLEVEL_MAP = {
 	"run": 100,
-	"help": 0,
+	"vecohelp": 0,
 	"reloadscript": 255,
 	"reloadsinglescript": 255,
 	"shutdown_server": 255,
@@ -55,6 +57,7 @@ GMLEVEL_MAP = {
 	"warpraw": 100,
 	"update": 0,
 	"hair": 50,
+	"haircat": 50,
 	"haircolor": 50,
 	"face": 50,
 	"wig": 50,
@@ -67,6 +70,7 @@ GMLEVEL_MAP = {
 	"printitem": 0,
 	"takeitem": 150,
 	"dustbox": 0,
+	"dyeing": 0,
 	"warehouse": 100,
 	"playbgm": 0,
 	"playse": 0,
