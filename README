@@ -1,20 +1,16 @@
 Rewrite from pyeco.
 
 Guide:
-* add "local,127.0.0.1:13000," to server.lst
+* create & copy csv to data dir (utf-8)
+* overwrite "local,127.0.0.1:13002," to server.lst
 * run virtualeco_launcher
 * register user on http://127.0.0.1:13100/
 * copy and run pyecolauncher
+  or xxx.exe /launch -u:user -p:passwd(md5 hash)
 
 Support:
-saga17 (until ver 361)
-361+ is unsupported because mapserver login packet changed.
-If you can dump packet please help me,
-I can't do that because I'm not in jp.
-
-No more feature will be add because developer can't
-get any more resource of packet and script.
-
+version 495(1057)
+old clients not supported.
 -------------------------------
 
 LICENSE: The MIT License (MIT)
@@ -24,12 +20,13 @@ Use of this software is limited to private use of the individual or circle, use 
 
 -------------------------------
 
-If you can dump packet from official server, please contact me.
-Or if you dont known how to dump, I can provide tool to you.
+バグ報告等は何らかの方法で。
 
-Contact:
-pyeco.git@gmail.com
+no support and no add new system.
 
-Mail-List(Google Group):
-https://groups.google.com/group/pyeco
+modified:
+@moldcode
+
+Original Source:
+https://github.com/pyeco-org/virtualeco
 

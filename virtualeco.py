@@ -42,6 +42,7 @@ def debugger():
 
 def atexit():
 	server.mapserver._shutdown()
+	server.worldserver._shutdown()
 	server.loginserver._shutdown()
 	if env.BACKUP_USER_DATA_EVERY_DAY:
 		users.backup_user_data()

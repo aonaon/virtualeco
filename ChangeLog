@@ -1,3 +1,26 @@
+2017-03-06
+	update new login system
+		add world_data_handler.py
+		chg login_data_handler.py
+			map_data_handler.py
+			packet.py
+	update map packet ver 1056
+	fix キャラクター関連
+		スキル関連
+		NPC関連
+	add スキル関連
+		ﾒﾀﾓｰ
+		親愛
+	add script [dyeing, haircut]
+	add 見た目変更((!out of date)map ver 1053)
+	change script NPC選択肢
+		change script
+		box.py
+		kuji_box.py
+		kuji_box_shop.py
+	change kuji_box script
+
+
 2013-04-26
 	add ver 361+ unsupported message
 
