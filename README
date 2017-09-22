@@ -3,10 +3,13 @@ Rewrite from pyeco.
 Guide:
 * create & copy csv to data dir (utf-8)
 * overwrite "local,127.0.0.1:13002," to server.lst
-* run virtualeco_launcher
 * register user on http://127.0.0.1:13100/
-* copy and run pyecolauncher
-  or xxx.exe /launch -u:user -p:passwd(md5 hash)
+* run virtualeco_launcher
+* create eco.exe shotcut
+* right click on shotcut >> properties
+  on the target column enter /launch -u:user -p:passwd(md5 hash) afer path name with space
+  e.g.: "parh name" /launch -u:user -p:passwd(md5 hash)
+* run eco.exe shotcut and try!!! 
 
 Support:
 version 506(1.1.26.0)
