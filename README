@@ -9,7 +9,10 @@ Guide:
 * right click on shotcut >> properties
   on the target column enter /launch -u:user -p:passwd(md5 hash) afer path name with space
   e.g.: "parh name" /launch -u:user -p:passwd(md5 hash)
+  (view password on /user/[user name]/user.ini)
 * run eco.exe shotcut and try!!! 
+sorry for poor english =w=
+
 
 Support:
 version 506(1.1.26.0)
