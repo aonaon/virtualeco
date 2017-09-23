@@ -34,11 +34,12 @@ def get_raw_dict(name):
 				continue
 			value = row_map_raw.get(attr)
 			if value is None:
-				general.log_error("attr not define:", attr)
+				general.log_error("attr not define:", attr,"value is",value)
 				continue
 			if value is NULL:
 				continue
 			if i > min_length:
+				#general.log_error("attr define:", attr,"value is",value)
 				min_length = i
 			row_map[i] = value
 		min_length += 1
@@ -95,7 +96,7 @@ def load():
 	map_obj = load_database("map", obj.map.Map)
 	monster_obj = load_database("monster", obj.monster.Monster)
 	npc = load_database("npc", data.npc.Npc)
-	pet_obj = load_database("pet", obj.pet.Pet)
-	partner_obj = load_database("partner", obj.pet.Pet)
+	pet_obj = load_database("partner", obj.pet.Pet)
+	#partner_obj = load_database("partner", obj.pet.Pet)
 	shop = load_database("shop", data.shop.Shop)
 	skill = load_database("skill", data.skill.Skill)

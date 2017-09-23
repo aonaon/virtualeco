@@ -15,18 +15,18 @@ pet_list_lock = threading.RLock()
 def set_pet(pc):
 	with pc.lock:
 		if pc.pet:
-			#general.log("[ pet ] set_pet failed: pc.pet exist")
+			general.log("[ pet ] set_pet failed: pc.pet exist")
 			return
 		if not pc.equip.pet:
-			#general.log("[ pet ] set_pet failed: pc.equip.pet not exist")
+			general.log("[ pet ] set_pet failed: pc.equip.pet not exist")
 			return False
 		item = pc.item.get(pc.equip.pet)
 		if not item:
-			#general.log("[ pet ] set_pet failed: item not exist")
+			general.log("[ pet ] set_pet failed: item not exist")
 			return False
 		pet = general.get_pet(item.pet_id)
 		if not pet:
-			#general.log("[ pet ] set_pet failed: pet not exist")
+			general.log("[ pet ] set_pet failed: pet not exist")
 			return False
 		pet = obj_pet.PetObject(pet)
 		pet.reset(item)

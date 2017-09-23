@@ -204,14 +204,14 @@ class PetObject(threading.Thread, Pet):
 		j = self.master.y - self.y
 		n = abs(i)
 		m = abs(j)
-		if n<=1 and m<=1:
+		if n<=2 and m<=2:
 			return
 		if n > m:
-			x = self.x if (n<=1) else ((self.x+1) if (i>0) else (self.x-1))
+			x = self.x if (n<=1) else ((self.x+3) if (i>0) else (self.x-1))
 			y = self.y if (m<=1) else ((self.y+m/n) if (j>0) else (self.y-m/n))
 		else:
 			x = self.x if (n<=1) else ((self.x+n/m) if (i>0) else (self.x-n/m))
-			y = self.y if (m<=1) else ((self.y+1) if (j>0) else (self.y-1))
+			y = self.y if (m<=1) else ((self.y+3) if (j>0) else (self.y-1))
 		self.set_coord(x, y)
 		self.master.map_send_map("11f9", self, 0x06) #キャラ移動アナウンス #歩き
 	
