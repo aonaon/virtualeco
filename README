@@ -8,7 +8,7 @@ Guide:
 * create eco.exe shotcut
 * right click on shotcut >> properties
   on the target column enter /launch -u:user -p:passwd(md5 hash) afer path name with space
-  e.g.: "parh name" /launch -u:user -p:passwd(md5 hash)
+  e.g.: "path name" /launch -u:user -p:passwd(md5 hash)
   (view password on /user/[user name]/user.ini)
 * run eco.exe shotcut and try!!! 
 sorry for poor english =w=
